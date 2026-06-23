@@ -27,9 +27,9 @@ This progress tracker is the single source of truth for the implementation statu
 - [x] Initialize Zustand receipt store with `persist` middleware ✅ *Complete*
 
 ### Milestone 2: OCR Extraction
-- [ ] Build canvas compression helper ⏳ *Pending*
-- [ ] Implement `FileUploader` drag-and-drop / camera capture ⏳ *Pending*
-- [ ] Connect `OCRScanner` worker lifecycle with progress tracking ⏳ *Pending*
+- [x] Build canvas compression helper ✅ *Complete*
+- [x] Implement `FileUploader` drag-and-drop / camera capture ✅ *Complete*
+- [x] Connect `OCRScanner` worker lifecycle with progress tracking ✅ *Complete*
 
 ### Milestone 3: Parser Logic
 - [ ] Write regex receipt text parsing algorithm ⏳ *Pending*

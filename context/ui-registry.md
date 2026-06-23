@@ -6,8 +6,8 @@ This registry catalogs the UI components built for the Split Bill OCR applicatio
 
 | Component Name | Description | Path | Status |
 | :--- | :--- | :--- | :--- |
-| **`FileUploader`** | Upload area for drag-and-drop or camera capture of receipt. | `src/components/custom/FileUploader.tsx` | ⏳ Pending |
-| **`OCRScanner`** | Scanning feedback component with progress bar and animated scan beam. | `src/components/custom/OCRScanner.tsx` | ⏳ Pending |
+| **`FileUploader`** | Upload area for drag-and-drop or camera capture of receipt. | `src/components/custom/FileUploader.tsx` | ✅ Complete |
+| **`OCRScanner`** | Scanning feedback component with progress bar and animated scan beam. | `src/components/custom/OCRScanner.tsx` | ✅ Complete |
 | **`DinerSelector`** | Controls to add, edit, or select participants (diners). | `src/components/custom/DinerSelector.tsx` | ⏳ Pending |
 | **`ReceiptItemRow`** | Individual receipt item card displaying pricing, qty, and allocation controls. | `src/components/custom/ReceiptItemRow.tsx` | ⏳ Pending |
 | **`BillSummaryCard`** | Display card showing subtotal, taxes, service charges, and individual breakdown. | `src/components/custom/BillSummaryCard.tsx` | ⏳ Pending |
@@ -38,3 +38,26 @@ This registry catalogs the UI components built for the Split Bill OCR applicatio
   -------------------------
   Total Tagihan: Rp [Grand Total]
   ```
+
+---
+
+## Design System Baseline
+
+Established from `src/app/page.tsx` on 2026-06-23.
+
+| Property         | Correct Class / Pattern |
+| ---------------- | ----------------------- |
+| Card Background  | `bg-card backdrop-blur-md border border-border shadow-glass rounded-2xl p-6` |
+| Text — Primary   | `text-foreground` |
+| Text — Secondary | `text-foreground/75` |
+| Text — Muted     | `text-foreground/50` or `text-foreground/40` |
+| Heading 1        | `text-2xl font-bold font-heading text-foreground` |
+| Button Primary   | `bg-primary hover:bg-primary-hover text-primary-foreground font-semibold text-sm transition-all active:scale-98 cursor-pointer h-10 px-4 rounded-lg` |
+| Button Secondary | `bg-secondary hover:brightness-110 text-foreground transition-all active:scale-98 cursor-pointer w-10 h-10 rounded-lg` |
+| Pill Badges      | `px-3 py-1 text-xs rounded-full bg-secondary border border-border text-foreground` |
+
+**Pattern notes:**
+- **Colors**: Never use raw Tailwind colors or hexes. Colors are strictly driven by HSL theme tokens mapped via CSS variables.
+- **Glassmorphism**: When creating cards or overlays, use `backdrop-blur-md border border-border shadow-glass bg-card` or the custom `@utility glass` class.
+- **Transitions**: Every interactive element should have `transition-all duration-200 active:scale-98` for organic feedback.
+
