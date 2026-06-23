@@ -18,6 +18,36 @@ export const useReceiptStore = create<ReceiptState>()(
       setRawText: (text) => set({ rawText: text, savedAt: Date.now() }),
       
       setItems: (items) => set({ items, savedAt: Date.now() }),
+
+      updateItem: (id, updates) => set((state) => ({
+        items: state.items.map((item) =>
+          item.id === id ? { ...item, ...updates } : item
+        ),
+        savedAt: Date.now()
+      })),
+
+      addItem: (item) => set((state) => ({
+        items: [
+          ...state.items,
+          {
+            id: typeof crypto !== "undefined" && crypto.randomUUID
+              ? crypto.randomUUID()
+              : Math.random().toString(36).substring(2, 9),
+            ...item
+          }
+        ],
+        savedAt: Date.now()
+      })),
+
+      deleteItem: (id) => set((state) => {
+        const updatedAssignments = { ...state.assignments };
+        delete updatedAssignments[id];
+        return {
+          items: state.items.filter((item) => item.id !== id),
+          assignments: updatedAssignments,
+          savedAt: Date.now()
+        };
+      }),
       
       addDiner: (name) => set((state) => {
         // Prevent duplicate diner names

@@ -32,8 +32,8 @@ This progress tracker is the single source of truth for the implementation statu
 - [x] Connect `OCRScanner` worker lifecycle with progress tracking ✅ *Complete*
 
 ### Milestone 3: Parser Logic
-- [ ] Write regex receipt text parsing algorithm ⏳ *Pending*
-- [ ] Add manual text review and correction textarea ⏳ *Pending*
+- [x] Write regex receipt text parsing algorithm ✅ *Complete*
+- [x] Add manual item review and correction card ✅ *Complete*
 
 ### Milestone 4: Zustand & Dashboard UI
 - [ ] Implement `DinerSelector` pill system ⏳ *Pending*
