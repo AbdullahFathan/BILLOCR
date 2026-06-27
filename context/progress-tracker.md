@@ -36,9 +36,9 @@ This progress tracker is the single source of truth for the implementation statu
 - [x] Add manual item review and correction card ✅ *Complete*
 
 ### Milestone 4: Zustand & Dashboard UI
-- [ ] Implement `DinerSelector` pill system ⏳ *Pending*
-- [ ] Implement `ReceiptItemRow` allocation selectors ⏳ *Pending*
-- [ ] Implement dynamic proportional tax calculations ⏳ *Pending*
+- [x] Implement `DinerSelector` pill system ✅ *Complete*
+- [x] Implement `ReceiptItemRow` allocation selectors ✅ *Complete*
+- [x] Implement dynamic proportional tax calculations ✅ *Complete*
 
 ### Milestone 5: Persist & Share
 - [ ] Add `ShareReportButton` copy report clipboard format and actions ⏳ *Pending*

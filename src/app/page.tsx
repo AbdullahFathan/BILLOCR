@@ -6,6 +6,9 @@ import { useHasHydrated } from "@/hooks/useHasHydrated";
 import { compressImage } from "@/lib/imageCompressor";
 import FileUploader from "@/components/custom/FileUploader";
 import OCRScanner from "@/components/custom/OCRScanner";
+import DinerSelector from "@/components/custom/DinerSelector";
+import ReceiptItemRow from "@/components/custom/ReceiptItemRow";
+import BillSummaryCard from "@/components/custom/BillSummaryCard";
 import { parseReceipt } from "@/lib/parser";
 import {
   Activity,
@@ -15,7 +18,10 @@ import {
   Loader2,
   Trash2,
   Plus,
-  Receipt
+  Receipt,
+  Users,
+  Copy,
+  Check
 } from "lucide-react";
 
 export default function Home() {
@@ -31,12 +37,18 @@ export default function Home() {
     addItem,
     deleteItem,
     setTax,
-    setServiceCharge
+    setServiceCharge,
+    diners,
+    assignments,
+    assignItem
   } = useReceiptStore();
   const [selectedFile, setSelectedFile] = useState<Blob | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [step, setStep] = useState<"review" | "assign">("review");
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+  const [activeDinerName, setActiveDinerName] = useState<string | null>(null);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   const handleFileSelected = async (file: File) => {
     setIsCompressing(true);
@@ -76,6 +88,53 @@ export default function Home() {
   const handleReset = () => {
     resetStore();
     setStep("review");
+  };
+
+  const handleCopyRecap = () => {
+    // Generate text template
+    const overallSubtotal = items.reduce((sum, item) => sum + item.qty * item.price, 0);
+    const grandTotal = overallSubtotal + tax + serviceCharge;
+
+    let text = `🧾 *Split Bill: Struk Belanja*\n`;
+    text += `-------------------------\n`;
+
+    diners.forEach((dinerName) => {
+      let dinerSubtotal = 0;
+      const dinerItems: string[] = [];
+
+      items.forEach((item) => {
+        const itemAssignments = assignments[item.id] || {};
+        const assignedQty = itemAssignments[dinerName] || 0;
+        if (assignedQty > 0) {
+          const shareCost = assignedQty * item.price;
+          dinerSubtotal += shareCost;
+          dinerItems.push(`- ${item.name} (x${assignedQty}): Rp ${shareCost.toLocaleString("id-ID")}`);
+        }
+      });
+
+      const dinerTax = overallSubtotal > 0 ? (dinerSubtotal / overallSubtotal) * tax : 0;
+      const dinerServiceCharge = overallSubtotal > 0 ? (dinerSubtotal / overallSubtotal) * serviceCharge : 0;
+      const dinerTotal = Math.round(dinerSubtotal + dinerTax + dinerServiceCharge);
+
+      if (dinerSubtotal > 0) {
+        text += `👤 *${dinerName}*: Rp ${dinerTotal.toLocaleString("id-ID")}\n`;
+        dinerItems.forEach((dItem) => {
+          text += `${dItem}\n`;
+        });
+        if (dinerTax > 0 || dinerServiceCharge > 0) {
+          const taxAndService = Math.round(dinerTax + dinerServiceCharge);
+          text += `- Pajak & Layanan: Rp ${taxAndService.toLocaleString("id-ID")}\n`;
+        }
+        text += `-------------------------\n`;
+      }
+    });
+
+    text += `Total Tagihan: Rp ${grandTotal.toLocaleString("id-ID")}`;
+
+    navigator.clipboard.writeText(text).then(() => {
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    });
   };
 
   // Calculate totals
@@ -330,71 +389,65 @@ export default function Home() {
           </div>
         )}
 
-        {/* Placeholder for Milestone 4 (Diner Assignment & Splits) */}
+        {/* Interactive Diner Assignment & Splits Dashboard */}
         {!isCompressing && !isScanning && rawText && step === "assign" && (
-          <div className="bg-card border border-border rounded-2xl p-6 backdrop-blur-md shadow-glass space-y-6">
-            <div className="flex items-center gap-3 border-b border-border/40 pb-4">
-              <div className="p-2 rounded-lg bg-success/10 border border-success/20 text-success">
-                <Receipt className="w-5 h-5" />
+          <div className="space-y-6">
+            {/* Diner Management Card */}
+            <div className="bg-card border border-border rounded-2xl p-6 backdrop-blur-md shadow-glass space-y-4">
+              <div className="flex items-center gap-3 border-b border-border/40 pb-4">
+                <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 text-primary">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div className="space-y-0.5">
+                  <h2 className="text-lg font-bold font-heading text-foreground">
+                    Assign Diners & Splits
+                  </h2>
+                  <p className="text-xs text-foreground/50">
+                    Allocate items to diners to calculate shares
+                  </p>
+                </div>
               </div>
-              <div className="space-y-0.5">
-                <h2 className="text-lg font-bold font-heading text-foreground">
-                  Receipt Items Locked
-                </h2>
-                <p className="text-xs text-foreground/50">
-                  Ready to assign to diners in Milestone 4
-                </p>
-              </div>
+              
+              <DinerSelector
+                activeDinerName={activeDinerName}
+                setActiveDinerName={setActiveDinerName}
+              />
             </div>
 
+            {/* Receipt Items List */}
             <div className="space-y-3">
-              <p className="text-xs text-foreground/70">
-                Here are the parsed and adjusted items that will be loaded into the Diner Assignment dashboard:
-              </p>
-
-              <div className="max-h-[220px] overflow-y-auto space-y-2 pr-1 scrollbar-thin">
+              <h3 className="text-xs font-bold text-foreground/60 uppercase tracking-wider px-1">
+                Receipt Items
+              </h3>
+              <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1 scrollbar-thin">
                 {items.map((item) => (
-                  <div
+                  <ReceiptItemRow
                     key={item.id}
-                    className="flex justify-between items-center text-xs p-2.5 rounded-lg bg-secondary/20 border border-border/30"
-                  >
-                    <div>
-                      <span className="font-semibold text-foreground">{item.name}</span>
-                      <span className="text-foreground/40 ml-1.5">x{item.qty}</span>
-                    </div>
-                    <span className="font-mono text-foreground/80">
-                      Rp {(item.qty * item.price).toLocaleString("id-ID")}
-                    </span>
-                  </div>
+                    item={item}
+                    assignments={assignments[item.id] || {}}
+                    onAssign={assignItem}
+                    diners={diners}
+                    activeDinerName={activeDinerName}
+                    isExpanded={expandedItemId === item.id}
+                    onToggleExpand={() => setExpandedItemId(expandedItemId === item.id ? null : item.id)}
+                  />
                 ))}
               </div>
-
-              <div className="bg-secondary/10 border border-border/30 rounded-xl p-3 space-y-1.5 text-xs">
-                <div className="flex justify-between text-foreground/60">
-                  <span>Subtotal</span>
-                  <span>Rp {subtotal.toLocaleString("id-ID")}</span>
-                </div>
-                {tax > 0 && (
-                  <div className="flex justify-between text-foreground/60">
-                    <span>Tax (Pajak)</span>
-                    <span>Rp {tax.toLocaleString("id-ID")}</span>
-                  </div>
-                )}
-                {serviceCharge > 0 && (
-                  <div className="flex justify-between text-foreground/60">
-                    <span>Service Charge</span>
-                    <span>Rp {serviceCharge.toLocaleString("id-ID")}</span>
-                  </div>
-                )}
-                <div className="flex justify-between font-bold text-foreground border-t border-border/40 pt-1.5 mt-1">
-                  <span>Total Tagihan</span>
-                  <span className="text-success">Rp {total.toLocaleString("id-ID")}</span>
-                </div>
-              </div>
             </div>
 
-            <div className="flex gap-3">
+            {/* Calculations Summary Breakdown */}
+            <BillSummaryCard
+              items={items}
+              diners={diners}
+              assignments={assignments}
+              tax={tax}
+              serviceCharge={serviceCharge}
+            />
+
+            {/* Footer Action Buttons */}
+            <div className="flex gap-3 pt-2">
               <button
+                type="button"
                 onClick={() => setStep("review")}
                 className="flex-1 flex items-center justify-center gap-2 h-11 px-4 rounded-lg bg-secondary hover:brightness-110 text-foreground border border-border font-semibold text-sm transition-all active:scale-98 cursor-pointer"
               >
@@ -402,11 +455,26 @@ export default function Home() {
               </button>
 
               <button
-                onClick={() => alert("Milestone 4 (Diner Assignment & Splits UI) is pending implementation.")}
-                className="flex-1 flex items-center justify-center gap-2 h-11 px-4 rounded-lg bg-primary hover:bg-primary-hover text-primary-foreground font-semibold text-sm transition-all active:scale-98 cursor-pointer shadow-md"
+                type="button"
+                onClick={handleCopyRecap}
+                disabled={diners.length === 0}
+                className={`flex-1 flex items-center justify-center gap-2 h-11 px-4 rounded-lg font-semibold text-sm transition-all active:scale-98 shadow-md ${
+                  diners.length === 0
+                    ? "bg-primary/40 text-primary-foreground/50 cursor-not-allowed"
+                    : "bg-primary hover:bg-primary-hover text-primary-foreground cursor-pointer"
+                }`}
               >
-                Start Splitting
-                <ArrowRight className="w-4 h-4" />
+                {copySuccess ? (
+                  <>
+                    <Check className="w-4 h-4 text-success" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    Copy Split Recap
+                  </>
+                )}
               </button>
             </div>
           </div>
