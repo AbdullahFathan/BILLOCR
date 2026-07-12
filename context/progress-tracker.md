@@ -40,6 +40,47 @@ This progress tracker is the single source of truth for the implementation statu
 - [x] Implement `ReceiptItemRow` allocation selectors ✅ *Complete*
 - [x] Implement dynamic proportional tax calculations ✅ *Complete*
 
-### Milestone 5: Persist & Share
-- [ ] Add `ShareReportButton` copy report clipboard format and actions ⏳ *Pending*
-- [ ] Run production test builds and deploy to Vercel ⏳ *Pending*
+
+
+
+### Milestone 5: Aura Split UI Redesign (UI Only — Logic Untouched)
+
+> **Design Source:** `context/ui_v1/` — mockup dari Google Stitch (Aura Split design system)  
+> **Strategy:** Refaktor komponen existing — visual diubah, logic/state/parser tetap sama  
+> **Token Strategy:** Ganti total — hapus token Electric Indigo, pakai token Aura Split (Golden Orange)  
+> **Navigation:** Tambah Bottom Navigation Bar (Scan / Assign / Settle)  
+> **Order:** Per screen/halaman — satu milestone per screen
+
+---
+
+#### M5.0 — Foundation: Token & Global CSS Migration
+- [x] Update `src/app/globals.css` — ganti seluruh `@theme` tokens ke Aura Split palette (Golden Orange, Amber, deep navy) ✅ *Complete*
+- [x] Update `ui-tokens.md` — dokumentasikan token baru (wajib sync dengan globals.css) ✅ *Complete*
+- [x] Update `ui-rules.md` — update Design System Baseline section di `ui-registry.md` ke pattern baru ✅ *Complete*
+- [x] Tambah Google Fonts: `Outfit` (heading) + `Inter` (body) di `layout.tsx` jika belum ✅ *Already in place*
+- [x] Buat komponen `BottomNav.tsx` — bottom navigation bar dengan 3 tab: Scan / Assign / Settle ✅ *Complete*
+
+#### M5.1 — Screen 1: Home / Upload Page
+- [x] Refaktor `FileUploader.tsx` — visual ke desain Aura Split (dashed orange border card, camera icon, dark flat bg) ✅ *Complete*
+- [x] Update `page.tsx` — section home/upload menggunakan token baru + layout baru (logo, tagline, feature chips) ✅ *Complete*
+- [x] Integrasikan `BottomNav.tsx` di layout utama ✅ *Complete*
+
+#### M5.2 — Screen 2: OCR Scanning Page
+- [ ] Refaktor `OCRScanner.tsx` — visual ke desain Aura Split (receipt preview, scan beam animasi, progress bar orange, info chip)
+- [ ] Pastikan animasi scan beam tetap berjalan menggunakan CSS keyframes (`@keyframes scan`)
+- [ ] Pertahankan seluruh lifecycle OCR worker & progress tracking logic
+
+#### M5.3 — Screen 3: Review Item Struk
+- [ ] Refaktor `ReceiptItemRow.tsx` — flat dark card, qty badge amber, price golden orange, edit icon ghost
+- [ ] Update section review di `page.tsx` — header bar (back + title + edit icon), summary chips row, sticky bottom CTA
+- [ ] Tambah section "Biaya Tambahan" (PB1/Pajak + Service Charge) dengan separator
+
+#### M5.4 — Screen 4: Assign & Split Dashboard
+- [ ] Refaktor `DinerSelector.tsx` — person pills dengan avatar initial, active border orange glow, "+ Tambah Orang" dashed chip
+- [ ] Refaktor `BillSummaryCard.tsx` — sticky bottom panel (subtotal aktif + mini summary semua orang + Salin Rekap button)
+- [ ] Update section dashboard di `page.tsx` — item rows flat card, counter buttons circular amber, split rata checkbox orange
+
+---
+
+### Next Step (After Milestone 5):
+- [ ] Change OCR to Google Vision API

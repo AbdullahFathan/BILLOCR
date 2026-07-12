@@ -42,3 +42,5 @@ next-env.d.ts
 
 .agents/
 skills-lock.json  
+
+context/ui_v1/

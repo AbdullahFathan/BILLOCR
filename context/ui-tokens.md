@@ -1,59 +1,120 @@
 # UI Design Tokens
 
-This document outlines the core visual variables for the Split Bill OCR interface. Because the application is **Dark Mode Only**, all tokens are designed around a premium dark, space-inspired, glassmorphic aesthetic.
+> **Status:** Updated for M5.0 — Aura Split Design System Migration  
+> **Source:** `context/ui_v1/DESIGN.md`  
+> **Strategy:** Modern-Flat, Tonal Layering, **Electric Indigo → Golden Orange**
+
+---
 
 ## 1. Color System (HSL)
 
-These values represent the standard HSL configurations. In code, they are represented as CSS custom properties.
+All tokens are mapped via `@theme` in `src/app/globals.css`. **Dark Mode Only.**
 
-### Base Colors
-- **`--background`**: `hsl(224 71% 4%)` - Deepest space navy.
-- **`--foreground`**: `hsl(210 40% 98%)` - Crisp off-white.
-- **`--card`**: `hsla(224 71% 6% / 0.55)` - Dark translucent glass container.
-- **`--card-foreground`**: `hsl(210 40% 98%)` - Card text.
-- **`--popover`**: `hsl(224 71% 6%)` - Tooltips and dropdown menus.
-- **`--popover-foreground`**: `hsl(210 40% 98%)` - Dropdown/tooltip text.
+### Base Foundation
+- **`--color-background`**: `hsl(220 84% 8%)` — Deep nocturnal navy (`#041426`)
+- **`--color-foreground`**: `hsl(216 88% 91%)` — Crisp blue-white (`#d4e3fe`)
 
-### Brand & Interactive Colors
-- **`--primary`**: `hsl(250 95% 68%)` - Electric Indigo (primary buttons, active tabs).
-- **`--primary-hover`**: `hsl(250 95% 74%)` - Brightened Indigo.
-- **`--primary-foreground`**: `hsl(210 40% 98%)` - Text on primary buttons.
-- **`--secondary`**: `hsl(215 25% 15%)` - Dark slate/grey for secondary buttons and indicators.
-- **`--secondary-foreground`**: `hsl(210 40% 98%)` - Text on secondary elements.
+### Surface Tonal Layers *(replaces glassmorphism)*
+| Token | Value | Usage |
+| :--- | :--- | :--- |
+| `--color-surface-lowest` | `hsl(221 89% 5%)` | Deepest bg layer |
+| `--color-surface-low` | `hsl(218 55% 11%)` | Level 1 cards |
+| `--color-surface` | `hsl(217 52% 13%)` | Main card surface |
+| `--color-surface-high` | `hsl(217 39% 17%)` | Elevated / popped cards |
+| `--color-surface-highest` | `hsl(216 32% 22%)` | Tooltips / popovers |
 
-### Status & Utility Colors
-- **`--success`**: `hsl(142 70% 45%)` - Emerald Green (complete assignments, paid status, success OCR toast).
-- **`--warning`**: `hsl(38 92% 50%)` - Amber Orange (unassigned items, mismatched calculations, warnings).
-- **`--destructive`**: `hsl(0 84.2% 60.2%)` - Crimson Red (deleting items, clearing assignments).
-- **`--info`**: `hsl(199 89% 48%)` - Cyber Blue (OCR scanning status, hints).
+### Primary — Golden Orange *(replaces Electric Indigo)*
+- **`--color-primary`**: `hsl(37 100% 73%)` — Golden Orange (`#ffc77a`) — CTA buttons, active tabs, progress bar
+- **`--color-primary-hover`**: `hsl(37 100% 65%)` — Slightly richer on hover
+- **`--color-primary-foreground`**: `hsl(29 100% 14%)` — Deep brown (`#452b00`) — Text on orange buttons
+
+### Accent — Amber Yellow
+- **`--color-accent`**: `hsl(44 100% 57%)` — Amber Yellow (`#eec133`) — Secondary interactions, qty badges, split success states
+- **`--color-accent-foreground`**: `hsl(40 100% 12%)` — Dark brown (`#3d2f00`)
+
+### Secondary
+- **`--color-secondary`**: `hsl(216 32% 22%)` — `surface-highest` — Secondary buttons, inactive chips
+- **`--color-secondary-foreground`**: `hsl(216 88% 91%)`
+
+### Status & Utility
+- **`--color-success`**: `hsl(142 70% 45%)` — Emerald Green
+- **`--color-warning`**: `hsl(38 92% 50%)` — Amber Orange
+- **`--color-destructive`**: `hsl(0 84.2% 60.2%)` — Crimson Red
+- **`--color-info`**: `hsl(199 89% 48%)` — Cyber Blue
 
 ### Borders & Inputs
-- **`--border`**: `hsla(217 32% 17% / 0.6)` - Subtle border separating glass cards.
-- **`--input`**: `hsla(217 32% 17% / 0.8)` - Background for text inputs, number counters.
-- **`--ring`**: `hsla(250 95% 68% / 0.5)` - Ring color on element focus.
+- **`--color-border`**: `hsl(217 30% 16%)` — Subtle 1px border (`#1D2433`)
+- **`--color-border-active`**: `hsl(37 100% 73%)` — Orange glow for active/selected state
+- **`--color-input`**: `hsl(217 52% 13%)` — Solid dark input surface
+- **`--color-ring`**: `hsla(37 100% 73% / 0.45)` — Amber glow ring on focus
+
+### Muted / On-Surface Variant
+- **`--color-muted`** / **`--color-muted-foreground`**: `hsl(27 31% 73%)` — Warm blue-grey for metadata, inactive icons (`#d7c3ae`)
 
 ---
 
-## 2. Glassmorphism & Visual Effects
+## 2. Elevation & Depth Strategy
 
-To achieve a modern, premium feel:
-- **`--glass-bg`**: `linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%)`
-- **`--glass-border`**: `linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%)`
-- **`--glass-blur`**: `blur(12px)`
-- **`--glass-shadow`**: `0 8px 32px 0 rgba(0, 0, 0, 0.37)`
+> **No glassmorphism** in M5+. Replaced by **Tonal Layering + Subtle Outlines**.
+
+| Level | Token | Usage |
+| :--- | :--- | :--- |
+| Level 0 — Base | `background` | Page background |
+| Level 1 — Surfaces | `surface-low` | Inner sections |
+| Level 2 — Cards | `surface` / `card` | Item cards |
+| Level 3 — Elevated | `surface-high` | Popped-up panels |
+| Level 4 — Popover | `surface-highest` | Dropdowns, tooltips |
+
+**Active State:** Border switches to `--color-border-active` (orange) + `box-shadow: 0 0 0 1px orange`.
 
 ---
 
-## 3. Typography & Sizing
+## 3. Typography
 
-We recommend using Google Fonts: **Outfit** (headings) and **Inter** (body text).
-- **Font Family (Headings)**: `Outfit, sans-serif`
-- **Font Family (Body)**: `Inter, sans-serif`
+| Role | Font | Size | Weight |
+| :--- | :--- | :--- | :--- |
+| H1 Display | Outfit | 32px | 700 |
+| H2 Section | Outfit | 24px | 600 |
+| H1 Mobile | Outfit | 28px | 700 |
+| Body LG | Inter | 18px | 400 |
+| Body MD | Inter | 16px | 400 |
+| Label Bold | Inter | 14px | 600 · uppercase · tracking-wider |
+| Label SM | Inter | 12px | 500 |
+| Price Display | Outfit | 40px | 700 · tracking-tighter |
 
-### Spacing & Layout
-- Card padding: `p-6` (`1.5rem` or `24px`) for desktop, `p-4` (`1rem` or `16px`) for mobile.
-- Gap intervals: `gap-4` for element grouping, `gap-6` for section layout.
-- Border Radius:
-  - Small elements (inputs, buttons): `rounded-lg` (`0.5rem` or `8px`)
-  - Medium elements (cards, wrappers): `rounded-2xl` (`1rem` or `16px`)
-  - Full items: `rounded-full` (`9999px`)
+---
+
+## 4. Shadows
+
+- **`--shadow-sm`**: `0 1px 3px 0 rgba(0,0,0,0.4)`
+- **`--shadow-md`**: `0 4px 12px 0 rgba(0,0,0,0.5)`
+- **`--shadow-glass`**: `0 8px 32px 0 rgba(0,0,0,0.37)` *(kept for compat)*
+
+---
+
+## 5. Spacing & Layout
+
+- **Container padding:** `20px` (fixed outer margins, mobile-first)
+- **Base rhythm:** 4px grid — use `4 / 8 / 12 / 16 / 20 / 32px` increments
+- **Card padding:** `p-5` (20px) mobile, `p-6` (24px) desktop
+- **Gap intervals:** `gap-3` element grouping, `gap-5` section layout
+- **Touch targets:** Minimum `48px × 48px` for all interactive elements
+
+### Border Radius
+| Size | Tailwind | Value |
+| :--- | :--- | :--- |
+| SM (inputs, badges) | `rounded-lg` | `0.5rem / 8px` |
+| MD (cards, rows) | `rounded-xl` | `0.75rem / 12px` |
+| LG (containers) | `rounded-2xl` | `1rem / 16px` |
+| Full (pills, avatars) | `rounded-full` | `9999px` |
+
+---
+
+## 6. Animations
+
+| Token | Value | Usage |
+| :--- | :--- | :--- |
+| `--animate-scan` | `scan 3s ease-in-out infinite` | OCR scan beam |
+| `--animate-pulse-glow` | `pulse-glow 2s ease-in-out infinite` | Active nav icon |
+| `--animate-slide-up` | `slide-up 0.3s ease-out` | Panel entry |
+| `--animate-fade-in` | `fade-in 0.25s ease-out` | Element reveal |
