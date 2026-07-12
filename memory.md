@@ -1,61 +1,50 @@
-# Memory — Milestone 5: Aura Split UI Redesign (M5.0 + M5.1 Complete)
+# Memory — Milestone 5: Aura Split UI Redesign (M5.0 → M5.4 Complete)
 
-Last updated: 2026-07-12T16:00:00+07:00
+Last updated: 2026-07-12T16:28:00+07:00
 
 ## What was built
 
-### M5.0 — Foundation (already complete before this session)
-- `src/app/globals.css` — full `@theme` token migration to Aura Split palette (Golden Orange primary, deep navy background, tonal surface layers replacing glassmorphism)
-- `context/ui-tokens.md` — synced to new tokens
-- `context/ui-rules.md` — updated Design System Baseline
-- `src/app/layout.tsx` — Outfit (heading) + Inter (body) fonts confirmed in place
-- `src/components/custom/BottomNav.tsx` — 3-tab bottom nav (Scan / Assign / Settle) with golden orange progress stepper bar, active dot indicator, disabled state for locked tabs
-
-### M5.1 — Screen 1: Home / Upload Page (completed this session)
-- **`src/components/custom/FileUploader.tsx`** — Full Aura Split visual redesign:
-  - `ScanLine` hero icon in `surface-high` tonal container (replaced old `FileImage`)
-  - Dashed border dropzone with `border-primary` + orange glow on drag-active
-  - `Gallery` (primary CTA, h-12 rounded-xl) + `Camera` (secondary) buttons
-  - 3 feature chips below: **Instant OCR**, **100% Private**, **2-hr Auto Save** with `text-primary` icons
-  - `fade-in` entry animation; all upload/reset logic untouched
-- **`src/app/page.tsx`** — Full restructure to tab-based layout:
-  - App header: Receipt logo icon + "Aura Split" heading + tagline (visible on Scan tab only)
-  - `BottomNav` wired with `activeTab` state (`scan` | `assign` | `settle`)
-  - `enabledTabs` logic: Assign & Settle only unlock after a receipt is scanned
-  - Auto-advances to `assign` tab after OCR completes
-  - `pb-nav` padding on `<main>` so content never hides behind fixed bottom bar
-  - Settle tab renders per-diner breakdown cards with avatar initials before copy action
-  - All existing OCR, parsing, Zustand, and calculation logic preserved — visual-only refactor
-- **`context/progress-tracker.md`** — M5.1 marked `[x]` complete
+### M5.4 — Screen 4: Assign & Split Dashboard (complete this session)
+- **`src/components/custom/DinerSelector.tsx`** — Full Aura Split visual redesign:
+  - Diner pills with initials inside circular avatar container.
+  - Active diner pill triggers border glow outline (`border-primary shadow-[0_0_0_1px_theme(colors.primary)] shadow-primary/20`).
+  - Inline dashed `+ Tambah Orang` button to trigger the input form.
+  - Cleaned inline add form layout.
+- **`src/components/custom/BillSummaryCard.tsx`** — Redesigned into a sticky-style panel featuring:
+  - Active diner with large subtotal, dynamic proportional tax/service charge breakdowns in expandable drawer.
+  - Horizontally laid other diner subtotal cards.
+  - Grand total strip.
+  - Embedded "Salin Rekap" CTA directly within the card for contextual priority.
+- **`src/app/page.tsx` — Dashboard section upgrade**:
+  - Re-ordered layout matching Google Stitch mockup.
+  - Section headers for "Bagi ke Siapa?" and "Daftar Pesanan".
+  - Cleaned up page actions footer (removed old redundant buttons).
+- **`context/progress-tracker.md`** — Updated M5.4 as completed.
+- **`context/ui-registry.md`** — Added imprints for `DinerSelector` and `BillSummaryCard`.
 
 ## Decisions made
 
-- **Tab-driven navigation (not step-driven)**: Replaced the old `step: "review" | "assign"` string state with `activeTab: NavTab` ("scan" | "assign" | "settle") tied directly to `BottomNav`. The Assign tab now contains both the Review & Adjust section and the Diner Assignment section — combined into one scrollable screen instead of two separate steps.
-- **No glassmorphism by default (M5+)**: All cards use flat tonal layering (`bg-surface`, `bg-surface-high`, `bg-surface-lowest`) per Aura Split design system. The `glass` utility is kept in globals.css only for compat.
-- **enabledTabs locks downstream tabs**: Assign and Settle are disabled until `rawText && items.length > 0`, preventing navigation to incomplete states.
-- **Auto-advance on OCR complete**: After `handleOCRCompleted`, `setActiveTab("assign")` fires automatically — no manual navigation needed by the user.
-- **Resume nudge on Scan tab**: If localStorage has existing items, a "Resume last session (N items)" button appears on the Scan screen.
+- **Contextual copy button**: "Salin Rekap" moved from Settle tab/page actions footer directly into the `BillSummaryCard` to maximize usability.
+- **Active diner spotlighting**: Featured active diner displayed with large currency breakdown, reducing clutter for other diners.
+- **Flat tonal layering over glassmorphism**: Replaced all card structures with flat tonal backgrounds (`bg-surface-low`, `bg-surface`) and subtle borders matching the new Aura Split color palette.
 
 ## Problems solved
 
-- **Windows PowerShell Execution Policy**: `npm run dev` fails with PSSecurityException. Always use `cmd /c "npm run dev"` or `cmd /c "npm run build"` instead.
+- **Execution policies on Windows**: Dev server and build commands must run under `cmd /c`.
+- **Occupied Port 3000**: Identified that process 9496 was occupying port 3000, and successfully terminated the process using `taskkill /PID 9496 /F`.
 
 ## Current state
 
 - **M5.0** ✅ Complete — Token migration, BottomNav built
-- **M5.1** ✅ Complete — Home/Upload screen visually redesigned, BottomNav integrated
-- **M5.2** ⬜ Not started — OCRScanner.tsx visual redesign pending
-- **M5.3** ⬜ Not started — ReceiptItemRow.tsx visual redesign pending
-- **M5.4** ⬜ Not started — DinerSelector.tsx + BillSummaryCard.tsx visual redesign pending
-- Dev server confirmed running and rendering correctly at localhost:3000
+- **M5.1** ✅ Complete — Home/Upload screen visually redesigned
+- **M5.2** ✅ Complete — OCR Scanning screen visually redesigned
+- **M5.3** ✅ Complete — Review Item Struk screen visually redesigned
+- **M5.4** ✅ Complete — DinerSelector.tsx + BillSummaryCard.tsx visual redesign complete
+- Build confirmed compiling successfully via Next.js Turbopack (`npm run build`).
 
 ## Next session starts with
 
-**M5.2 — Screen 2: OCR Scanning Page**
-- Refactor `src/components/custom/OCRScanner.tsx` — visual to Aura Split (receipt preview, scan beam animation using `@keyframes scan`, progress bar orange, info chip)
-- Ensure scan beam animation runs via CSS keyframes (`animate-scan`)
-- Preserve all OCR worker lifecycle and progress tracking logic — visual-only refactor
-- Run `/remember restore` first, then proceed directly to `OCRScanner.tsx`
+- **Change OCR to Google Vision API**: Migrate client-side Tesseract.js engine to a cloud-based Google Cloud Vision API solution to improve text detection quality and parser accuracy.
 
 ## Open questions
 

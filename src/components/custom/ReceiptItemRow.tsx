@@ -2,7 +2,14 @@
 
 import React from "react";
 import { ReceiptItem } from "@/types";
-import { ChevronDown, ChevronUp, Plus, Minus, User, AlertCircle } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Plus,
+  Minus,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
 
 interface ReceiptItemRowProps {
   item: ReceiptItem;
@@ -23,31 +30,32 @@ export default function ReceiptItemRow({
   isExpanded,
   onToggleExpand,
 }: ReceiptItemRowProps) {
-  // Calculate total assigned quantity
-  const totalAssigned = Object.values(assignments).reduce((sum, qty) => sum + qty, 0);
-  // Using epsilon/rounding to handle floating point issues (e.g. 0.1 + 0.2 = 0.30000000000000004)
-  const remainingQty = Math.max(0, parseFloat((item.qty - totalAssigned).toFixed(4)));
+  /* ── Allocation math ───────────────────────────────────────── */
+  const totalAssigned = Object.values(assignments).reduce(
+    (sum, qty) => sum + qty,
+    0
+  );
+  const remainingQty = Math.max(
+    0,
+    parseFloat((item.qty - totalAssigned).toFixed(4))
+  );
   const isFullyAllocated = remainingQty === 0;
-  const isPartiallyAllocated = totalAssigned > 0 && !isFullyAllocated;
   const isUnallocated = totalAssigned === 0;
 
-  // Get initials for avatar badges
-  const getInitials = (name: string) => {
-    return name
+  /* ── Helpers ───────────────────────────────────────────────── */
+  const getInitials = (name: string) =>
+    name
       .split(" ")
       .map((n) => n[0])
       .join("")
       .toUpperCase()
       .substring(0, 2);
-  };
 
   const handleIncrement = (dinerName: string) => {
     const currentQty = assignments[dinerName] || 0;
-    // We increment by 0.5 or 1.0, whichever is smaller/available
     const increment = remainingQty >= 0.5 ? 0.5 : remainingQty;
-    if (increment > 0) {
+    if (increment > 0)
       onAssign(item.id, dinerName, parseFloat((currentQty + increment).toFixed(2)));
-    }
   };
 
   const handleDecrement = (dinerName: string) => {
@@ -60,82 +68,115 @@ export default function ReceiptItemRow({
 
   const handleQuickAssign = (dinerName: string) => {
     if (remainingQty <= 0) return;
-    // Default to 1.0 share, or remaining quantity if less than 1.0
     const initialQty = remainingQty >= 1 ? 1 : remainingQty;
     onAssign(item.id, dinerName, initialQty);
   };
 
-  // Get diners not yet assigned to this item
-  const unassignedDiners = diners.filter((diner) => !(diner in assignments));
+  const unassignedDiners = diners.filter((d) => !(d in assignments));
 
+  /* ── Status helpers ────────────────────────────────────────── */
+  const rowBorderClass = isExpanded
+    ? "border-primary shadow-[0_0_0_1px_theme(colors.primary)]"
+    : !isFullyAllocated && totalAssigned > 0
+    ? "border-warning/40 hover:border-warning/70"
+    : "border-border hover:border-border-active/40";
+
+  const rowBgClass = isExpanded
+    ? "bg-surface"
+    : !isFullyAllocated && totalAssigned > 0
+    ? "bg-warning/5"
+    : "bg-surface";
+
+  /* ────────────────────────────────────────────────────────────── */
   return (
     <div
-      className={`border rounded-2xl transition-all duration-300 overflow-hidden ${
-        isExpanded
-          ? "border-primary bg-card/75 shadow-[0_0_20px_rgba(250,95,68,0.08)]"
-          : !isFullyAllocated && totalAssigned > 0
-          ? "border-warning/50 bg-warning/5 hover:border-warning/80"
-          : "border-border hover:border-border/80 bg-card/40"
-      }`}
+      className={`border rounded-2xl transition-all duration-200 overflow-hidden ${rowBorderClass} ${rowBgClass}`}
     >
-      {/* Collapsed Header Info */}
+      {/* ── Collapsed Header ─────────────────────────────────── */}
       <div
         onClick={onToggleExpand}
-        className="p-4 flex items-center justify-between cursor-pointer select-none"
+        className="p-4 flex items-center justify-between cursor-pointer select-none gap-3"
       >
-        <div className="space-y-1 flex-1 min-w-0 pr-4">
-          <div className="flex items-center gap-2">
-            <h4 className="font-bold text-sm text-foreground truncate max-w-[200px]">
+        {/* Left: name + meta */}
+        <div className="flex-1 min-w-0 space-y-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h4 className="font-semibold text-sm text-foreground truncate max-w-[180px]">
               {item.name}
             </h4>
-            {/* Warning badge if under-allocated and assignments exist */}
+
+            {/* Qty badge — amber */}
+            <span className="px-2 py-0.5 text-[10px] rounded-full bg-accent text-accent-foreground font-semibold shrink-0">
+              ×{item.qty}
+            </span>
+
+            {/* Status pill */}
+            {isFullyAllocated && totalAssigned > 0 && (
+              <span className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold bg-success/15 text-success rounded-full border border-success/25 shrink-0">
+                <CheckCircle2 className="w-2.5 h-2.5" />
+                Done
+              </span>
+            )}
             {!isFullyAllocated && totalAssigned > 0 && (
-              <span className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold bg-warning/20 text-warning rounded-full border border-warning/30 animate-pulse">
+              <span className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold bg-warning/20 text-warning rounded-full border border-warning/30 animate-pulse shrink-0">
                 <AlertCircle className="w-2.5 h-2.5" />
                 {remainingQty} left
               </span>
             )}
             {isUnallocated && diners.length > 0 && (
-              <span className="px-2 py-0.5 text-[10px] font-semibold bg-secondary border border-border text-foreground/50 rounded-full">
+              <span className="px-2 py-0.5 text-[10px] font-semibold bg-secondary border border-border text-muted rounded-full shrink-0">
                 Unassigned
               </span>
             )}
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-foreground/55 font-mono">
-            <span>Qty: {item.qty}</span>
-            <span>•</span>
-            <span>Rp {item.price.toLocaleString("id-ID")} each</span>
-          </div>
+
+          {/* Price per unit — golden orange */}
+          <p className="text-xs text-muted font-mono">
+            Rp{" "}
+            <span className="text-primary font-semibold">
+              {item.price.toLocaleString("id-ID")}
+            </span>{" "}
+            / unit
+          </p>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="text-right font-semibold font-mono text-sm text-foreground">
-            Rp {(item.qty * item.price).toLocaleString("id-ID")}
+        {/* Right: total price + chevron */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          <div className="text-right">
+            <p className="text-xs text-muted font-medium leading-none mb-0.5">
+              Total
+            </p>
+            <p className="text-sm font-bold font-heading text-primary tabular-nums">
+              Rp {(item.qty * item.price).toLocaleString("id-ID")}
+            </p>
           </div>
-
-          <div className="text-foreground/40 hover:text-foreground transition-all">
-            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-surface-high border border-border text-muted hover:text-foreground hover:border-primary/40 transition-all">
+            {isExpanded ? (
+              <ChevronUp className="w-3.5 h-3.5" />
+            ) : (
+              <ChevronDown className="w-3.5 h-3.5" />
+            )}
           </div>
         </div>
       </div>
 
-      {/* Avatar Row in Collapsed State */}
+      {/* ── Avatar strip (collapsed, has assignments) ─────────── */}
       {!isExpanded && totalAssigned > 0 && (
-        <div className="px-4 pb-3 border-t border-border/10 pt-2 flex flex-wrap gap-1.5 items-center bg-secondary/5">
-          <span className="text-[10px] text-foreground/40 font-medium">Assigned:</span>
+        <div className="px-4 pb-3 pt-1 border-t border-border/20 flex flex-wrap gap-1.5 items-center">
+          <span className="text-[10px] text-muted font-medium">Split:</span>
           {Object.entries(assignments).map(([dinerName, qty]) => (
             <div
               key={dinerName}
-              className="group relative flex items-center justify-center h-5 px-2 rounded bg-primary/10 border border-primary/20 text-primary text-[10px] font-semibold transition-all hover:bg-primary/20"
+              className="group relative flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-semibold transition-all hover:bg-primary/20 cursor-default"
               title={`${dinerName}: ${qty} shares`}
             >
-              <span>
-                {getInitials(dinerName)}
-                <span className="opacity-80 ml-1">({qty})</span>
+              <span className="w-3.5 h-3.5 rounded-full bg-primary/20 flex items-center justify-center text-[8px] font-bold">
+                {getInitials(dinerName).charAt(0)}
               </span>
-              
-              {/* Custom Tooltip */}
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block z-20 bg-popover text-popover-foreground text-[10px] font-medium py-1 px-2 rounded shadow-md border border-border whitespace-nowrap">
+              <span>{getInitials(dinerName)}</span>
+              <span className="opacity-70">({qty})</span>
+
+              {/* Tooltip */}
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block z-20 bg-surface-highest border border-border rounded-lg text-[10px] font-medium py-1 px-2.5 shadow-md whitespace-nowrap text-foreground">
                 {dinerName}: {qty} {qty === 1 ? "share" : "shares"}
               </div>
             </div>
@@ -143,50 +184,55 @@ export default function ReceiptItemRow({
         </div>
       )}
 
-      {/* Expanded Controls Drawer */}
+      {/* ── Expanded Controls Drawer ──────────────────────────── */}
       {isExpanded && (
-        <div className="border-t border-border/40 p-4 space-y-4 bg-secondary/15">
-          {/* Stepper Allocations List */}
+        <div className="border-t border-border/30 bg-surface-lowest p-4 space-y-4 animate-[fade-in_0.15s_ease-out]">
+
+          {/* Allocation list */}
           {Object.keys(assignments).length > 0 ? (
-            <div className="space-y-2.5">
-              <span className="text-xs text-foreground/50 font-semibold block">Diner Splits:</span>
+            <div className="space-y-2">
+              <span className="text-[11px] text-muted font-semibold uppercase tracking-wider block">
+                Diner Splits
+              </span>
               <div className="space-y-2">
                 {Object.entries(assignments).map(([dinerName, qty]) => (
                   <div
                     key={dinerName}
-                    className="flex items-center justify-between bg-card/60 border border-border/40 p-2.5 rounded-xl"
+                    className="flex items-center justify-between bg-surface border border-border rounded-xl px-3 py-2.5"
                   >
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold flex items-center justify-center">
-                        {getInitials(dinerName)}
+                    {/* Avatar + name */}
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-7 h-7 rounded-full bg-primary/15 border border-primary/25 text-primary text-[10px] font-bold flex items-center justify-center shrink-0 font-heading">
+                        {getInitials(dinerName).charAt(0)}
                       </div>
-                      <span className="text-xs font-semibold text-foreground truncate max-w-[120px]">
+                      <span className="text-xs font-semibold text-foreground truncate max-w-[110px]">
                         {dinerName}
                       </span>
                     </div>
 
+                    {/* Stepper */}
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => handleDecrement(dinerName)}
-                        className="w-7 h-7 flex items-center justify-center rounded bg-secondary hover:brightness-110 text-foreground transition-all active:scale-90 font-bold select-none cursor-pointer"
+                        className="w-7 h-7 flex items-center justify-center rounded-lg bg-secondary hover:brightness-110 text-foreground transition-all active:scale-90 cursor-pointer border border-border"
                       >
-                        <Minus className="w-3.5 h-3.5" />
+                        <Minus className="w-3 h-3" />
                       </button>
-                      <span className="w-12 text-center text-xs font-bold text-foreground font-mono">
+                      <span className="w-10 text-center text-xs font-bold text-foreground tabular-nums font-heading">
                         {qty}
                       </span>
                       <button
                         type="button"
                         onClick={() => handleIncrement(dinerName)}
                         disabled={isFullyAllocated}
-                        className={`w-7 h-7 flex items-center justify-center rounded transition-all font-bold select-none ${
+                        className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all font-bold select-none border ${
                           isFullyAllocated
-                            ? "bg-secondary/40 text-foreground/20 cursor-not-allowed"
-                            : "bg-secondary hover:brightness-110 text-foreground active:scale-90 cursor-pointer"
+                            ? "bg-secondary/40 text-foreground/20 cursor-not-allowed border-border/30"
+                            : "bg-secondary hover:brightness-110 text-foreground active:scale-90 cursor-pointer border-border"
                         }`}
                       >
-                        <Plus className="w-3.5 h-3.5" />
+                        <Plus className="w-3 h-3" />
                       </button>
                     </div>
                   </div>
@@ -194,17 +240,17 @@ export default function ReceiptItemRow({
               </div>
             </div>
           ) : (
-            <p className="text-xs text-foreground/45 italic py-1 text-center">
+            <p className="text-xs text-muted italic py-1 text-center">
               No diners assigned yet.
             </p>
           )}
 
-          {/* Quantity Tracker Bar */}
-          <div className="bg-card/40 border border-border/30 rounded-xl p-3 flex justify-between items-center text-xs">
-            <span className="text-foreground/50 font-medium">Split Progress:</span>
+          {/* Split progress tracker */}
+          <div className="bg-surface border border-border/40 rounded-xl px-3 py-2.5 flex justify-between items-center text-xs">
+            <span className="text-muted font-medium">Progress</span>
             <div className="flex items-center gap-2">
-              <span className="font-mono font-bold text-foreground">
-                {totalAssigned} / {item.qty} shares
+              <span className="font-mono font-bold text-foreground tabular-nums">
+                {totalAssigned} / {item.qty}
               </span>
               {!isFullyAllocated ? (
                 <span className="px-2 py-0.5 text-[10px] font-semibold bg-warning/20 text-warning rounded-full border border-warning/20">
@@ -212,16 +258,18 @@ export default function ReceiptItemRow({
                 </span>
               ) : (
                 <span className="px-2 py-0.5 text-[10px] font-semibold bg-success/20 text-success rounded-full border border-success/20">
-                  Completed
+                  Complete
                 </span>
               )}
             </div>
           </div>
 
-          {/* Quick-Assign Other Diners */}
+          {/* Quick-add unassigned diners */}
           {diners.length > 0 && unassignedDiners.length > 0 && (
             <div className="space-y-2">
-              <span className="text-xs text-foreground/50 font-semibold block">Quick Add Diner:</span>
+              <span className="text-[11px] text-muted font-semibold uppercase tracking-wider block">
+                Quick Add
+              </span>
               <div className="flex flex-wrap gap-2">
                 {unassignedDiners.map((dinerName) => (
                   <button
@@ -232,18 +280,18 @@ export default function ReceiptItemRow({
                     className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full border transition-all duration-200 ${
                       isFullyAllocated
                         ? "bg-secondary/40 border-border/40 text-foreground/20 cursor-not-allowed"
-                        : "bg-secondary border-border text-foreground hover:border-primary/40 active:scale-95 cursor-pointer"
+                        : "bg-secondary border-border text-foreground hover:border-primary/50 hover:text-primary active:scale-95 cursor-pointer"
                     }`}
                   >
                     <Plus className="w-3 h-3 text-primary" />
-                    <span>{dinerName}</span>
+                    {dinerName}
                   </button>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Active Diner Auto-Assign Callout */}
+          {/* Active diner fast-assign CTA */}
           {activeDinerName && !isFullyAllocated && (
             <button
               type="button"
@@ -254,10 +302,13 @@ export default function ReceiptItemRow({
                   handleQuickAssign(activeDinerName);
                 }
               }}
-              className="w-full py-2 bg-primary/10 border border-dashed border-primary/30 rounded-xl hover:bg-primary/20 text-primary text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-98"
+              className="w-full py-2.5 bg-primary/10 border border-dashed border-primary/40 rounded-xl hover:bg-primary/20 text-primary text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-98"
             >
               <Plus className="w-3.5 h-3.5" />
-              Assign Active Diner: <span className="underline">{activeDinerName}</span>
+              Assign to{" "}
+              <span className="underline underline-offset-2">
+                {activeDinerName}
+              </span>
             </button>
           )}
         </div>

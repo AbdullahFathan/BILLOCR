@@ -66,19 +66,19 @@ This progress tracker is the single source of truth for the implementation statu
 - [x] Integrasikan `BottomNav.tsx` di layout utama ✅ *Complete*
 
 #### M5.2 — Screen 2: OCR Scanning Page
-- [ ] Refaktor `OCRScanner.tsx` — visual ke desain Aura Split (receipt preview, scan beam animasi, progress bar orange, info chip)
-- [ ] Pastikan animasi scan beam tetap berjalan menggunakan CSS keyframes (`@keyframes scan`)
-- [ ] Pertahankan seluruh lifecycle OCR worker & progress tracking logic
+- [x] Refaktor `OCRScanner.tsx` — visual ke desain Aura Split (receipt preview, scan beam animasi, progress bar orange, info chip) ✅ *Complete*
+- [x] Pastikan animasi scan beam tetap berjalan menggunakan CSS keyframes (`@keyframes scan`) ✅ *Complete*
+- [x] Pertahankan seluruh lifecycle OCR worker & progress tracking logic ✅ *Complete*
 
 #### M5.3 — Screen 3: Review Item Struk
-- [ ] Refaktor `ReceiptItemRow.tsx` — flat dark card, qty badge amber, price golden orange, edit icon ghost
-- [ ] Update section review di `page.tsx` — header bar (back + title + edit icon), summary chips row, sticky bottom CTA
-- [ ] Tambah section "Biaya Tambahan" (PB1/Pajak + Service Charge) dengan separator
+- [x] Refaktor `ReceiptItemRow.tsx` — flat dark card, qty badge amber, price golden orange, edit icon ghost ✅ *Complete*
+- [x] Update section review di `page.tsx` — header bar (title + summary chips row) ✅ *Complete*
+- [x] Tambah section "Biaya Tambahan" (PB1/Pajak + Service Charge) dengan separator ✅ *Complete*
 
 #### M5.4 — Screen 4: Assign & Split Dashboard
-- [ ] Refaktor `DinerSelector.tsx` — person pills dengan avatar initial, active border orange glow, "+ Tambah Orang" dashed chip
-- [ ] Refaktor `BillSummaryCard.tsx` — sticky bottom panel (subtotal aktif + mini summary semua orang + Salin Rekap button)
-- [ ] Update section dashboard di `page.tsx` — item rows flat card, counter buttons circular amber, split rata checkbox orange
+- [x] Refaktor `DinerSelector.tsx` — person pills dengan avatar initial, active border orange glow, "+ Tambah Orang" dashed chip ✅ *Complete*
+- [x] Refaktor `BillSummaryCard.tsx` — sticky bottom panel (subtotal aktif + mini summary semua orang + Salin Rekap button) ✅ *Complete*
+- [x] Update section dashboard di `page.tsx` — item rows flat card, counter buttons circular amber, split rata checkbox orange ✅ *Complete*
 
 ---
 
