@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { createWorker } from "tesseract.js";
 import {
   Loader2,
   AlertCircle,
@@ -9,42 +8,38 @@ import {
   ScanLine,
   Cpu,
   X,
+  Clock,
 } from "lucide-react";
 import { useReceiptStore } from "@/hooks/useReceiptStore";
+import { compressImage } from "@/lib/imageCompressor";
+import type { OCRResponse } from "@/types";
 
 interface OCRScannerProps {
   imageBlob: Blob;
-  onCompleted: (rawText: string) => void;
+  onCompleted: (rawText: string, remainingUploads: number) => void;
   onCancel: () => void;
 }
 
-/* ─── Progress step labels ────────────────────────────── */
+/* ─── Scanning step labels (indeterminate — no % from Mistral) ──── */
 const STEPS = [
-  { threshold: 0,  label: "Initializing engine" },
-  { threshold: 10, label: "Loading OCR core"     },
-  { threshold: 15, label: "Setting up language"  },
-  { threshold: 20, label: "Reading text data"    },
-  { threshold: 60, label: "Extracting items"     },
-  { threshold: 90, label: "Finalizing"           },
+  "Compressing image...",
+  "Sending to OCR engine...",
+  "Reading receipt structure...",
+  "Extracting items & prices...",
+  "Finalizing results...",
 ];
-
-function getStep(progress: number) {
-  let current = STEPS[0];
-  for (const step of STEPS) {
-    if (progress >= step.threshold) current = step;
-  }
-  return current;
-}
 
 export default function OCRScanner({
   imageBlob,
   onCompleted,
   onCancel,
 }: OCRScannerProps) {
-  const [progress, setProgress] = useState(0);
-  const [status, setStatus] = useState("Initializing...");
-  const [imageUrl, setImageUrl] = useState<string>("");
-  const [error, setError] = useState<string | null>(null);
+  const [stepIndex, setStepIndex]     = useState(0);
+  const [imageUrl, setImageUrl]       = useState<string>("");
+  const [error, setError]             = useState<string | null>(null);
+  const [isRateLimited, setIsRateLimited] = useState(false);
+  const [resetTime, setResetTime]     = useState<number | null>(null);
+  const [countdown, setCountdown]     = useState<string>("");
   const setRawText = useReceiptStore((state) => state.setRawText);
   const processingRef = useRef(false);
 
@@ -52,69 +47,95 @@ export default function OCRScanner({
   useEffect(() => {
     const url = URL.createObjectURL(imageBlob);
     setImageUrl(url);
-    return () => {
-      URL.revokeObjectURL(url);
-    };
+    return () => URL.revokeObjectURL(url);
   }, [imageBlob]);
 
-  /* ── Run Tesseract OCR processing ────────────────────── */
+  /* ── Countdown timer for rate limit reset ────────────── */
+  useEffect(() => {
+    if (!isRateLimited || !resetTime) return;
+    const tick = () => {
+      const diffMs = resetTime - Date.now();
+      if (diffMs <= 0) { setCountdown("sekarang"); return; }
+      const h = Math.floor(diffMs / 3_600_000);
+      const m = Math.floor((diffMs % 3_600_000) / 60_000);
+      const s = Math.floor((diffMs % 60_000) / 1_000);
+      setCountdown(
+        h > 0 ? `${h} jam ${m} menit` : m > 0 ? `${m} menit ${s} detik` : `${s} detik`
+      );
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [isRateLimited, resetTime]);
+
+  /* ── Cycle through step labels while scanning ────────── */
+  useEffect(() => {
+    if (error || isRateLimited) return;
+    const interval = setInterval(() => {
+      setStepIndex((i) => Math.min(i + 1, STEPS.length - 1));
+    }, 1800);
+    return () => clearInterval(interval);
+  }, [error, isRateLimited]);
+
+  /* ── Run Mistral OCR via /api/ocr ────────────────────── */
   useEffect(() => {
     if (processingRef.current || !imageUrl) return;
     processingRef.current = true;
     setError(null);
 
-    let worker: any = null;
-
     async function runOCR() {
       try {
-        setStatus("Creating OCR worker...");
-        setProgress(5);
+        // 1. Compress image (Canvas API — already a Blob here, compress again
+        //    only if it came directly from camera without prior compression)
+        const compressed = imageBlob.size > 500_000
+          ? await compressImage(new File([imageBlob], "receipt.jpg", { type: imageBlob.type }))
+          : imageBlob;
 
-        worker = await createWorker("ind+eng", 1, {
-          logger: (m) => {
-            if (m.status === "recognizing text") {
-              setStatus("Extracting receipt items...");
-              setProgress(Math.round(20 + m.progress * 80));
-            } else if (m.status === "loading tesseract core") {
-              setStatus("Loading OCR core engine...");
-              setProgress(10);
-            } else if (m.status === "initializing api") {
-              setStatus("Initializing language pack...");
-              setProgress(15);
-            } else {
-              setStatus(
-                `${m.status.charAt(0).toUpperCase() + m.status.slice(1)}...`
-              );
-            }
-          },
+        // 2. Convert to base64
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            // Strip data URL prefix → keep only base64 payload
+            const base64Payload = result.split(",")[1];
+            if (!base64Payload) reject(new Error("Failed to encode image."));
+            else resolve(base64Payload);
+          };
+          reader.onerror = () => reject(new Error("FileReader error."));
+          reader.readAsDataURL(compressed);
         });
 
-        setStatus("Reading text data...");
-        const {
-          data: { text },
-        } = await worker.recognize(imageUrl);
+        // 3. POST to /api/ocr (rate-limited by middleware)
+        const res = await fetch("/api/ocr", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imageBase64: base64, mimeType: compressed.type }),
+        });
 
-        if (!text || text.trim() === "") {
-          throw new Error(
-            "No readable text could be extracted from the receipt. Please try another photo."
-          );
+        const json: OCRResponse = await res.json();
+
+        // 4. Handle 429 rate limit
+        if (res.status === 429 || (json.success === false && json.error === "RATE_LIMIT_EXCEEDED")) {
+          setIsRateLimited(true);
+          const resetMs = json.success === false && json.reset ? json.reset : Date.now() + 86_400_000;
+          setResetTime(resetMs);
+          return;
         }
 
+        // 5. Handle other errors
+        if (!json.success) {
+          throw new Error(json.message ?? "Unknown OCR error.");
+        }
+
+        // 6. Success path
+        const { text, remainingUploads } = json.data;
         setRawText(text);
-        onCompleted(text);
-      } catch (err: any) {
-        console.error("OCR Error:", err);
-        setError(
-          err.message || "An unexpected error occurred during receipt scanning."
-        );
+        onCompleted(text, remainingUploads);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Unexpected error during scanning.";
+        console.error("[OCRScanner] Error:", msg);
+        setError(msg);
       } finally {
-        if (worker) {
-          try {
-            await worker.terminate();
-          } catch (termErr) {
-            console.error("Failed to terminate worker:", termErr);
-          }
-        }
         processingRef.current = false;
       }
     }
@@ -125,32 +146,31 @@ export default function OCRScanner({
   /* ── Handle manual retry ─────────────────────────────── */
   const handleRetry = () => {
     setError(null);
+    setIsRateLimited(false);
+    setResetTime(null);
     processingRef.current = false;
-    setImageUrl(() => URL.createObjectURL(imageBlob));
+    setStepIndex(0);
+    // Re-trigger by creating a new object URL
+    const url = URL.createObjectURL(imageBlob);
+    setImageUrl(url);
   };
-
-  const currentStep = getStep(progress);
 
   return (
     <div className="w-full max-w-md mx-auto space-y-4 animate-[fade-in_0.25s_ease-out]">
 
       {/* ── Header card ───────────────────────────────────── */}
       <div className="bg-surface border border-border rounded-2xl p-5 flex items-center gap-4">
-        {/* Icon container */}
         <div className="w-12 h-12 rounded-xl bg-surface-high border border-border flex items-center justify-center shrink-0">
           <ScanLine className="w-6 h-6 text-primary" />
         </div>
-
         <div className="flex-1 min-w-0">
           <h2 className="text-lg font-bold font-heading text-foreground leading-tight">
             Scanning Receipt
           </h2>
           <p className="text-xs text-muted mt-0.5 truncate">
-            Powered by on-device OCR · 100% Private
+          Powered by Cloud OCR · High Accuracy
           </p>
         </div>
-
-        {/* Cancel X button (top-right) */}
         <button
           onClick={onCancel}
           aria-label="Cancel scanning"
@@ -171,12 +191,10 @@ export default function OCRScanner({
             className="w-full max-h-[260px] object-contain opacity-60"
           />
 
-          {/* Scan beam — only shown while scanning (no error) */}
-          {!error && (
+          {/* Scan beam — only shown while scanning (no error, not rate limited) */}
+          {!error && !isRateLimited && (
             <>
-              {/* Subtle orange tint overlay */}
               <div className="absolute inset-0 bg-primary/5 pointer-events-none" />
-              {/* Animated horizontal beam */}
               <div
                 className="absolute left-0 w-full h-0.5 pointer-events-none"
                 style={{
@@ -199,9 +217,33 @@ export default function OCRScanner({
         </div>
       )}
 
-      {/* ── Progress / Error card ─────────────────────────── */}
+      {/* ── Progress / Error / Rate-limit card ───────────── */}
       <div className="bg-surface border border-border rounded-2xl p-5 space-y-4">
-        {error ? (
+        {isRateLimited ? (
+          /* ── Rate limit state ──────────────────────────── */
+          <>
+            <div className="flex items-start gap-3 p-4 rounded-xl border border-primary/30 bg-primary/8">
+              <Clock className="w-5 h-5 shrink-0 mt-0.5 text-primary" />
+              <div>
+                <p className="font-bold text-sm text-foreground">
+                  Batas Upload Harian Tercapai
+                </p>
+                <p className="text-xs text-muted mt-1 leading-relaxed">
+                  Kamu sudah melakukan 5 scan hari ini. Batas akan direset dalam:
+                </p>
+                <p className="text-sm font-bold text-primary mt-2 tabular-nums">
+                  {countdown || "Menghitung..."}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onCancel}
+              className="w-full flex items-center justify-center h-12 px-4 rounded-xl bg-secondary hover:brightness-110 text-foreground border border-border font-semibold text-sm transition-all duration-200 active:scale-95 cursor-pointer"
+            >
+              Kembali
+            </button>
+          </>
+        ) : error ? (
           /* ── Error state ─────────────────────────────────── */
           <>
             <div className="flex items-start gap-3 p-4 rounded-xl border border-destructive/30 bg-destructive/10">
@@ -215,7 +257,6 @@ export default function OCRScanner({
                 </p>
               </div>
             </div>
-
             <div className="flex gap-3">
               <button
                 onClick={handleRetry}
@@ -233,36 +274,32 @@ export default function OCRScanner({
             </div>
           </>
         ) : (
-          /* ── Scanning state ──────────────────────────────── */
+          /* ── Scanning state (indeterminate) ──────────────── */
           <>
-            {/* Step label + percentage */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <Loader2 className="w-4 h-4 shrink-0 animate-spin text-primary" />
-                <span className="text-sm text-foreground/80 font-medium truncate">
-                  {currentStep.label}
-                </span>
-              </div>
-              <span className="text-sm font-bold font-heading text-primary shrink-0 tabular-nums">
-                {progress}%
+            {/* Step label */}
+            <div className="flex items-center gap-2 min-w-0">
+              <Loader2 className="w-4 h-4 shrink-0 animate-spin text-primary" />
+              <span className="text-sm text-foreground/80 font-medium truncate">
+                {STEPS[stepIndex]}
               </span>
             </div>
 
-            {/* Progress bar */}
+            {/* Indeterminate progress bar */}
             <div className="w-full h-2 bg-surface-high rounded-full overflow-hidden border border-border/40">
               <div
-                className="h-full rounded-full transition-all duration-300 ease-out"
+                className="h-full rounded-full"
                 style={{
-                  width: `${progress}%`,
                   background:
                     "linear-gradient(to right, var(--color-primary), var(--color-accent))",
                   boxShadow: "0 0 8px 1px hsla(37 100% 73% / 0.4)",
+                  animation: "indeterminate 1.8s ease-in-out infinite",
                 }}
               />
             </div>
 
-            {/* Status fine-print */}
-            <p className="text-xs text-muted leading-relaxed">{status}</p>
+            <p className="text-xs text-muted leading-relaxed">
+              Menggunakan teknologi OCR canggih untuk akurasi terbaik pada struk Indonesia...
+            </p>
 
             {/* Cancel button */}
             <button

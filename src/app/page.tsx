@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useReceiptStore } from "@/hooks/useReceiptStore";
 import { useHasHydrated } from "@/hooks/useHasHydrated";
-import { compressImage } from "@/lib/imageCompressor";
+
 import FileUploader from "@/components/custom/FileUploader";
 import OCRScanner from "@/components/custom/OCRScanner";
 import DinerSelector from "@/components/custom/DinerSelector";
@@ -47,13 +47,13 @@ export default function Home() {
     assignItem,
   } = useReceiptStore();
 
-  const [selectedFile, setSelectedFile]     = useState<Blob | null>(null);
-  const [isCompressing, setIsCompressing]   = useState(false);
-  const [isScanning, setIsScanning]         = useState(false);
-  const [activeTab, setActiveTab]           = useState<NavTab>("scan");
-  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile]       = useState<Blob | null>(null);
+  const [isScanning, setIsScanning]           = useState(false);
+  const [activeTab, setActiveTab]             = useState<NavTab>("scan");
+  const [expandedItemId, setExpandedItemId]   = useState<string | null>(null);
   const [activeDinerName, setActiveDinerName] = useState<string | null>(null);
-  const [copySuccess, setCopySuccess]       = useState(false);
+  const [copySuccess, setCopySuccess]         = useState(false);
+  const [remainingUploads, setRemainingUploads] = useState<number>(5);
 
   /* ── Derived nav state ──────────────────────────────────────── */
   // Which tabs are reachable right now
@@ -63,24 +63,16 @@ export default function Home() {
     : ["scan"];
 
   /* ── File handling ──────────────────────────────────────────── */
-  const handleFileSelected = async (file: File) => {
-    setIsCompressing(true);
-    try {
-      const compressedBlob = await compressImage(file);
-      setSelectedFile(compressedBlob);
-      setIsScanning(true);
-    } catch (err) {
-      console.error("Compression failed, falling back to raw file:", err);
-      setSelectedFile(file);
-      setIsScanning(true);
-    } finally {
-      setIsCompressing(false);
-    }
+  // Compression is now delegated to OCRScanner before the API call
+  const handleFileSelected = (file: File) => {
+    setSelectedFile(file);
+    setIsScanning(true);
   };
 
-  const handleOCRCompleted = (text: string) => {
+  const handleOCRCompleted = (text: string, remaining: number) => {
     setIsScanning(false);
     setSelectedFile(null);
+    setRemainingUploads(remaining);
     const parsed = parseReceipt(text);
     setItems(parsed.items);
     setTax(parsed.tax);
@@ -174,17 +166,8 @@ export default function Home() {
       {/* ── Scrollable content area ── */}
       <main className="flex-1 w-full max-w-md mx-auto px-5 pt-8 pb-nav space-y-6">
 
-        {/* ── Canvas pre-compression ── */}
-        {isCompressing && (
-          <div className="bg-surface border border-border rounded-2xl p-8 text-center space-y-3 animate-[fade-in_0.3s_ease-out]">
-            <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm font-medium text-foreground font-heading">Optimizing Image...</p>
-            <p className="text-xs text-muted">Compressing for high-speed client-side OCR.</p>
-          </div>
-        )}
-
         {/* ── OCR Scanning ── */}
-        {!isCompressing && isScanning && selectedFile && (
+        {isScanning && selectedFile && (
           <OCRScanner
             imageBlob={selectedFile}
             onCompleted={handleOCRCompleted}
@@ -195,7 +178,7 @@ export default function Home() {
         {/* ────────────────────────────────────────────────────────
             SCAN TAB — Upload / Home screen
         ──────────────────────────────────────────────────────── */}
-        {!isCompressing && !isScanning && activeTab === "scan" && (
+        {!isScanning && activeTab === "scan" && (
           <div className="space-y-6 animate-[slide-up_0.3s_ease-out]">
 
             {/* App header */}
@@ -214,7 +197,7 @@ export default function Home() {
             </div>
 
             {/* File Uploader */}
-            <FileUploader onFileSelected={handleFileSelected} />
+            <FileUploader onFileSelected={handleFileSelected} remainingUploads={remainingUploads} />
 
             {/* If items already exist (resumed from localStorage), show a quick-resume nudge */}
             {rawText && items.length > 0 && (
@@ -232,7 +215,7 @@ export default function Home() {
         {/* ────────────────────────────────────────────────────────
             ASSIGN TAB — Review & Assign
         ──────────────────────────────────────────────────────── */}
-        {!isCompressing && !isScanning && activeTab === "assign" && rawText && (
+        {!isScanning && activeTab === "assign" && rawText && (
           <div className="space-y-6 animate-[slide-up_0.3s_ease-out]">
 
             {/* ── Section: Review & Adjust Items ── */}
@@ -491,7 +474,7 @@ export default function Home() {
         {/* ────────────────────────────────────────────────────────
             SETTLE TAB — Copy recap
         ──────────────────────────────────────────────────────── */}
-        {!isCompressing && !isScanning && activeTab === "settle" && rawText && (
+        {!isScanning && activeTab === "settle" && rawText && (
           <div className="space-y-6 animate-[slide-up_0.3s_ease-out]">
             <div className="bg-surface border border-border rounded-2xl p-6 space-y-5">
               <div className="flex items-center gap-3 border-b border-border/40 pb-4">
@@ -567,7 +550,7 @@ export default function Home() {
         )}
 
         {/* Fallback: assign/settle tab active but no data yet */}
-        {!isCompressing && !isScanning && activeTab !== "scan" && !rawText && (
+        {!isScanning && activeTab !== "scan" && !rawText && (
           <div className="flex flex-col items-center justify-center py-20 space-y-4 text-center animate-[fade-in_0.3s_ease-out]">
             <Receipt className="w-12 h-12 text-muted opacity-40" strokeWidth={1} />
             <p className="text-sm text-muted">Scan a receipt first to get started.</p>

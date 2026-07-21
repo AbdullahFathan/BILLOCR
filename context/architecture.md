@@ -6,7 +6,8 @@
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS v4
 - **State Management**: Zustand (Client-side draft state with localStorage persist middleware)
-- **OCR Engine**: Tesseract.js (Client-side WebAssembly)
+- **OCR Engine**: Mistral OCR API (`mistral-ocr-latest`) — server-side via `/api/ocr` Route Handler
+- **Rate Limiting**: Upstash Redis (`@upstash/ratelimit`) — 5 uploads per IP per 24 hours, enforced at Edge via `middleware.ts`
 - **Deployment**: Vercel
 
 ---
@@ -40,9 +41,21 @@ graph TD
     subgraph Client [Client-Side Browser]
         UI[User Interface / React]
         Canvas[Canvas API - Compress Image]
-        Tesseract[Tesseract.js WASM - OCR Extract]
         State[Zustand Store - Bill & Splits State]
         LS[(Local Storage)]
+    end
+
+    subgraph Edge [Next.js Edge - middleware.ts]
+        RL[Upstash Redis - Rate Limit 5/24h]
+    end
+
+    subgraph Server [Next.js Server - /api/ocr]
+        Route[Route Handler]
+    end
+
+    subgraph External [External APIs]
+        Mistral[Mistral OCR API]
+        Upstash[(Upstash Redis)]
     end
 
     subgraph Parser [Parser Utilities]
@@ -50,11 +63,16 @@ graph TD
     end
 
     UI -->|1. Load Image| Canvas
-    Canvas -->|2. Feed Compressed Image| Tesseract
-    Tesseract -->|3. OCR Raw Text| Regex
-    Regex -->|4. Structured JSON Response| State
-    State <-->|5. Synchronize State| LS
-    State -->|6. Generate Text Recap| UI
+    Canvas -->|2. Convert to base64| Route
+    Route -->|3. Check IP limit| RL
+    RL -->|4. Allow / Block| Route
+    RL <-->|Redis HTTP| Upstash
+    Route -->|5. Send base64| Mistral
+    Mistral -->|6. OCR Markdown text| Route
+    Route -->|7. Raw text| Regex
+    Regex -->|8. Structured JSON| State
+    State <-->|9. Synchronize| LS
+    State -->|10. Generate Recap| UI
 ```
 
 ---
@@ -63,8 +81,10 @@ graph TD
 
 Rules the AI agent must never violate:
 
+- **API Key Security**: `MISTRAL_API_KEY`, `UPSTASH_REDIS_REST_URL`, and `UPSTASH_REDIS_REST_TOKEN` must never be committed to the repository or exposed to the client bundle. Always read from `process.env` on the server.
+- **OCR is Server-Side**: Never call Mistral SDK or any external OCR API from a Client Component. OCR must go through `/api/ocr` (Route Handler).
+- **Rate Limit at Edge**: The Upstash `Ratelimit` instance must live in `middleware.ts` only — not in the Route Handler.
 - **100% Client-Side Calculations**: All bill computations, subtotal, and tax allocations must run entirely in browser state.
-- **Data Privacy**: No receipt images or parsed transaction records may be sent to external APIs or servers.
 - **LocalStorage 2-Hour TTL**: Persisted draft state must expire and clear automatically if the saved timestamp is older than 2 hours.
 - **Upload Reset Rule**: Uploading a new image must immediately clear all existing data in `localStorage` before parsing the new receipt.
 - **UI Constraint**: Do not build a "Clear" or "Reset" button in the UI; the state is managed automatically via the expiration timer and new image uploads.

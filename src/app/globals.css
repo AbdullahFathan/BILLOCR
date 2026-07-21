@@ -89,6 +89,12 @@
     from { opacity: 0; }
     to   { opacity: 1; }
   }
+
+  @keyframes indeterminate {
+    0%   { transform: translateX(-100%); width: 50%; }
+    50%  { transform: translateX(100%);  width: 70%; }
+    100% { transform: translateX(200%);  width: 50%; }
+  }
 }
 
 /* ── Utility: Flat tonal card (replaces glassmorphism) ─────── */

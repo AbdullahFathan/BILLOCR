@@ -28,3 +28,26 @@ export interface ReceiptState {
   resetStore: () => void;
   checkExpiration: () => void;
 }
+
+// ── OCR API Response ─────────────────────────────────────────────────────────
+
+/**
+ * Mirrors the response shape of POST /api/ocr.
+ * On success, includes the extracted text and how many uploads are left today.
+ * On failure, includes an error code and optional reset timestamp.
+ */
+export type OCRResponse =
+  | { success: true;  data: { text: string; remainingUploads: number } }
+  | { success: false; error: string; message?: string; reset?: number };
+
+/**
+ * UI state machine for the upload → OCR flow.
+ * Used by FileUploader and OCRScanner to drive conditional rendering.
+ */
+export type UploadStatus =
+  | "idle"          // Waiting for user to select a file
+  | "compressing"   // Canvas API is compressing the image
+  | "scanning"      // POST /api/ocr request in flight
+  | "done"          // OCR completed successfully
+  | "rate_limited"  // 429 received — show countdown to reset
+  | "api_error";    // 500 received — show retry option

@@ -2,29 +2,85 @@
 
 This document details integration patterns and rules for third-party libraries installed or planned in the workspace.
 
-## 1. Tesseract.js (Client-Side OCR)
+## 1. Mistral OCR (Server-Side)
 
-To avoid slowing down initial page loads, load `tesseract.js` dynamically.
+All OCR is now processed server-side via the Mistral OCR API using model `mistral-ocr-latest`.
+The helper is located at `src/lib/mistralOCR.ts`.
 
-### Dynamic Worker Lifecycle Pattern
-- Create the worker on demand when the user selects a receipt file.
-- Always clean up the worker (`await worker.terminate()`) inside a `finally` block to prevent browser memory leaks.
+### Key Rules
+- **Server-only**: `extractTextFromImage` must only be called from server-side code (Route Handler or Server Action). Never call the Mistral SDK from a Client Component.
+- **API Key**: Always reads from `process.env.MISTRAL_API_KEY`. Never hardcode or expose the key.
+- **Output format**: Mistral returns a `pages` array. Always join them with `\n` to produce one raw text block for the parser.
+
+### Pattern (`src/lib/mistralOCR.ts`)
 
 ```typescript
-import { createWorker } from 'tesseract.js';
+import { Mistral } from '@mistralai/mistralai';
 
-export async function processOCR(imageSrc: string, onProgress: (p: number) => void) {
-  // Use createWorker from tesseract.js
-  const worker = await createWorker('ind+eng'); // load Indonesian and English training data
-  
-  try {
-    const { data: { text } } = await worker.recognize(imageSrc);
-    return text;
-  } finally {
-    await worker.terminate();
-  }
+export async function extractTextFromImage(
+  base64: string,
+  mimeType: string
+): Promise<string> {
+  const client = new Mistral({ apiKey: process.env.MISTRAL_API_KEY! });
+  const response = await client.ocr.process({
+    model: 'mistral-ocr-latest',
+    document: {
+      type: 'image_url',
+      imageUrl: `data:${mimeType};base64,${base64}`,
+    },
+  });
+  return response.pages.map(p => p.markdown).join('\n');
 }
 ```
+
+---
+
+## 2. Upstash Redis Rate Limiting (Edge Middleware)
+
+Rate limiting is enforced at the Edge using `@upstash/ratelimit` in `middleware.ts`.
+It blocks users who exceed **5 OCR uploads per 24 hours**, identified by IP address.
+
+### Key Rules
+- **Middleware only**: The `Ratelimit` instance lives in `middleware.ts`. Do not instantiate it inside Route Handlers or Client Components.
+- **Algorithm**: Use `Ratelimit.slidingWindow(5, '24 h')` — more accurate than fixed window at period boundaries.
+- **Prefix**: Always use `'billocr:ocr_upload'` as the key prefix to namespace keys in Redis.
+- **Reading remaining**: The middleware sets `X-RateLimit-Remaining` on forwarded requests. The Route Handler reads this header to include `remainingUploads` in the response.
+
+### Pattern (`middleware.ts`)
+
+```typescript
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
+
+const ratelimit = new Ratelimit({
+  redis: Redis.fromEnv(), // reads UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN
+  limiter: Ratelimit.slidingWindow(5, '24 h'),
+  prefix: 'billocr:ocr_upload',
+  analytics: true,
+});
+
+// In middleware function:
+const ip = request.ip ?? 'anonymous';
+const { success, limit, remaining, reset } = await ratelimit.limit(ip);
+
+if (!success) {
+  return NextResponse.json({ error: 'RATE_LIMIT_EXCEEDED', reset }, { status: 429 });
+}
+```
+
+---
+
+## 3. Upstash Redis Environment Variables
+
+Required in `.env.local` (and Vercel Environment Variables for production):
+
+```
+MISTRAL_API_KEY=your_mistral_key
+UPSTASH_REDIS_REST_URL=https://your-db.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your_token
+```
+
+`Redis.fromEnv()` automatically reads `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`.
 
 ---
 
