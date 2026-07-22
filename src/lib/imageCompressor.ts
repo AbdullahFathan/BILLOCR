@@ -72,12 +72,12 @@ export function compressImage(
         );
       };
 
-      img.onerror = (err) => {
+      img.onerror = () => {
         reject(new Error('Failed to load image element.'));
       };
     };
 
-    reader.onerror = (err) => {
+    reader.onerror = () => {
       reject(new Error('Failed to read file.'));
     };
   });

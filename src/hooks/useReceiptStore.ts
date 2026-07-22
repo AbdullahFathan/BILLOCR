@@ -65,7 +65,8 @@ export const useReceiptStore = create<ReceiptState>()(
         const updatedAssignments = { ...state.assignments };
         for (const itemId in updatedAssignments) {
           if (updatedAssignments[itemId] && updatedAssignments[itemId][name] !== undefined) {
-            const { [name]: _, ...remainingAssignments } = updatedAssignments[itemId];
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { [name]: _removed, ...remainingAssignments } = updatedAssignments[itemId];
             updatedAssignments[itemId] = remainingAssignments;
           }
         }

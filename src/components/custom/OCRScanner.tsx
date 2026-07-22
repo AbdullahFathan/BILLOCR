@@ -46,6 +46,7 @@ export default function OCRScanner({
   /* ── Generate object URL for image preview ───────────── */
   useEffect(() => {
     const url = URL.createObjectURL(imageBlob);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setImageUrl(url);
     return () => URL.revokeObjectURL(url);
   }, [imageBlob]);

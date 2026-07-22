@@ -2,7 +2,7 @@
 
 import React, { useMemo } from "react";
 import { ReceiptItem } from "@/types";
-import { Copy, Check, Info, ChevronDown, ChevronUp } from "lucide-react";
+import { Info, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 import { calcDinerBreakdowns } from "@/lib/calculator";
 
@@ -13,8 +13,6 @@ interface BillSummaryCardProps {
   tax: number;
   serviceCharge: number;
   activeDinerName?: string | null;
-  onCopyRecap?: () => void;
-  copySuccess?: boolean;
 }
 
 export default function BillSummaryCard({
@@ -24,8 +22,6 @@ export default function BillSummaryCard({
   tax,
   serviceCharge,
   activeDinerName,
-  onCopyRecap,
-  copySuccess,
 }: BillSummaryCardProps) {
   const [expandedDiner, setExpandedDiner] = useState<string | null>(null);
 
