@@ -1,9 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { ReceiptItem } from "@/types";
 import { Copy, Check, Info, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
+import { calcDinerBreakdowns } from "@/lib/calculator";
 
 interface BillSummaryCardProps {
   items: ReceiptItem[];
@@ -29,9 +30,9 @@ export default function BillSummaryCard({
   const [expandedDiner, setExpandedDiner] = useState<string | null>(null);
 
   /* ── Calculations ─────────────────────────────────────────── */
-  const overallSubtotal = items.reduce(
-    (sum, item) => sum + item.qty * item.price,
-    0
+  const overallSubtotal = useMemo(
+    () => items.reduce((sum, item) => sum + item.qty * item.price, 0),
+    [items],
   );
   const grandTotal = overallSubtotal + tax + serviceCharge;
 
@@ -43,55 +44,18 @@ export default function BillSummaryCard({
       .toUpperCase()
       .substring(0, 2);
 
-  const dinerBreakdowns = diners.map((dinerName) => {
-    let dinerSubtotal = 0;
-    const itemizedList: Array<{
-      itemName: string;
-      qty: number;
-      price: number;
-      shareCost: number;
-    }> = [];
-
-    items.forEach((item) => {
-      const itemAssignments = assignments[item.id] || {};
-      const assignedQty = itemAssignments[dinerName] || 0;
-      if (assignedQty > 0) {
-        const shareCost = assignedQty * item.price;
-        dinerSubtotal += shareCost;
-        itemizedList.push({
-          itemName: item.name,
-          qty: assignedQty,
-          price: item.price,
-          shareCost,
-        });
-      }
-    });
-
-    const dinerTax =
-      overallSubtotal > 0 ? (dinerSubtotal / overallSubtotal) * tax : 0;
-    const dinerServiceCharge =
-      overallSubtotal > 0
-        ? (dinerSubtotal / overallSubtotal) * serviceCharge
-        : 0;
-    const dinerTotal = Math.round(dinerSubtotal + dinerTax + dinerServiceCharge);
-
-    return {
-      name: dinerName,
-      subtotal: dinerSubtotal,
-      tax: dinerTax,
-      serviceCharge: dinerServiceCharge,
-      total: dinerTotal,
-      items: itemizedList,
-    };
-  });
+  const dinerBreakdowns = useMemo(
+    () => calcDinerBreakdowns(diners, items, assignments, tax, serviceCharge),
+    [diners, items, assignments, tax, serviceCharge],
+  );
 
   const totalAllocatedSubtotal = dinerBreakdowns.reduce(
     (sum, d) => sum + d.subtotal,
-    0
+    0,
   );
   const unassignedSubtotal = Math.max(
     0,
-    overallSubtotal - totalAllocatedSubtotal
+    overallSubtotal - totalAllocatedSubtotal,
   );
 
   /* Determine active diner breakdown to feature */
@@ -100,7 +64,7 @@ export default function BillSummaryCard({
     dinerBreakdowns[0] ??
     null;
   const otherDiners = dinerBreakdowns.filter(
-    (d) => d.name !== featuredDiner?.name
+    (d) => d.name !== featuredDiner?.name,
   );
 
   /* ── Render ───────────────────────────────────────────────── */
@@ -137,7 +101,7 @@ export default function BillSummaryCard({
                 setExpandedDiner(
                   expandedDiner === featuredDiner.name
                     ? null
-                    : featuredDiner.name
+                    : featuredDiner.name,
                 )
               }
               className="flex items-center gap-1 text-[11px] text-muted hover:text-foreground transition-colors cursor-pointer pb-1"
@@ -168,7 +132,7 @@ export default function BillSummaryCard({
                       key={i}
                       className="flex justify-between text-[11px] text-foreground/75"
                     >
-                      <span className="truncate max-w-[180px]">
+                      <span className="truncate max-w-45">
                         {it.itemName}{" "}
                         <span className="text-muted">×{it.qty}</span>
                       </span>
@@ -186,7 +150,7 @@ export default function BillSummaryCard({
                           <span>
                             Rp{" "}
                             {Math.round(featuredDiner.tax).toLocaleString(
-                              "id-ID"
+                              "id-ID",
                             )}
                           </span>
                         </div>
@@ -197,7 +161,7 @@ export default function BillSummaryCard({
                           <span>
                             Rp{" "}
                             {Math.round(
-                              featuredDiner.serviceCharge
+                              featuredDiner.serviceCharge,
                             ).toLocaleString("id-ID")}
                           </span>
                         </div>
@@ -268,7 +232,7 @@ export default function BillSummaryCard({
                         key={i}
                         className="flex justify-between text-[11px] text-foreground/70"
                       >
-                        <span className="truncate max-w-[160px]">
+                        <span className="truncate max-w-40">
                           {it.itemName}{" "}
                           <span className="text-muted">×{it.qty}</span>
                         </span>
@@ -283,7 +247,7 @@ export default function BillSummaryCard({
                     <span>Rp {d.total.toLocaleString("id-ID")}</span>
                   </div>
                 </div>
-              )
+              ),
           )}
         </div>
       )}
@@ -297,34 +261,6 @@ export default function BillSummaryCard({
           Rp {grandTotal.toLocaleString("id-ID")}
         </span>
       </div>
-
-      {/* ── Salin Rekap CTA ────────────────────────────────── */}
-      {onCopyRecap && (
-        <div className="px-5 pb-5 pt-3">
-          <button
-            type="button"
-            onClick={onCopyRecap}
-            disabled={diners.length === 0}
-            className={`w-full flex items-center justify-center gap-2 h-12 rounded-xl font-semibold text-sm transition-all duration-200 active:scale-95 ${
-              diners.length === 0
-                ? "bg-primary/25 text-primary-foreground/40 cursor-not-allowed"
-                : "bg-primary hover:bg-primary-hover text-primary-foreground cursor-pointer shadow-md"
-            }`}
-          >
-            {copySuccess ? (
-              <>
-                <Check className="w-4 h-4 text-success" />
-                Tersalin!
-              </>
-            ) : (
-              <>
-                <Copy className="w-4 h-4" />
-                Salin Rekap
-              </>
-            )}
-          </button>
-        </div>
-      )}
     </div>
   );
 }

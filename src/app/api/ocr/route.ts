@@ -40,6 +40,19 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Whitelist MIME types — hanya terima format gambar yang valid
+    const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "INVALID_MIME_TYPE",
+          message: `Tipe file tidak didukung: ${mimeType}. Gunakan JPEG, PNG, WebP, atau GIF.`,
+        },
+        { status: 400 }
+      );
+    }
   } catch {
     return NextResponse.json(
       { success: false, error: "INVALID_BODY", message: "Invalid JSON body." },

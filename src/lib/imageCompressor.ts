@@ -1,13 +1,19 @@
+/** Maximum width/height (px) before the image gets downscaled. */
+const MAX_IMAGE_DIMENSION = 1600;
+
+/** JPEG quality factor: 0 (worst) – 1 (best). 0.75 = good balance of quality vs. size. */
+const JPEG_QUALITY = 0.75;
+
 /**
  * Compresses an image file using the Canvas API.
- * Resizes the image to fit within maxWidth/maxHeight (default 1600px)
- * and outputs a compressed JPEG Blob at the specified quality (default 0.75).
+ * Resizes the image to fit within maxWidth/maxHeight (default MAX_IMAGE_DIMENSION)
+ * and outputs a compressed JPEG Blob at the specified quality (default JPEG_QUALITY).
  */
 export function compressImage(
   file: File,
-  maxWidth = 1600,
-  maxHeight = 1600,
-  quality = 0.75
+  maxWidth = MAX_IMAGE_DIMENSION,
+  maxHeight = MAX_IMAGE_DIMENSION,
+  quality = JPEG_QUALITY
 ): Promise<Blob> {
   return new Promise((resolve, reject) => {
     // Check if window and FileReader are available (client-side only)

@@ -66,7 +66,7 @@ export default function DinerSelector({
               onClick={() => handleSelectDiner(name)}
               className={`group relative flex items-center gap-2 pl-1 pr-3 py-1 rounded-full cursor-pointer select-none transition-all duration-200 active:scale-95 ${
                 isActive
-                  ? "bg-primary/15 border border-primary text-primary shadow-[0_0_0_1px_theme(colors.primary)] shadow-primary/20"
+                  ? "bg-primary/15 border border-primary text-primary shadow-[0_0_0_1px_var(--color-primary)] shadow-primary/20"
                   : "bg-secondary border border-border text-foreground hover:border-primary/40 hover:bg-secondary/80"
               }`}
             >
@@ -89,7 +89,7 @@ export default function DinerSelector({
                 type="button"
                 onClick={(e) => handleRemoveDiner(name, e)}
                 className="ml-0.5 -mr-1 p-0.5 rounded-full text-foreground/30 hover:text-destructive hover:bg-destructive/10 transition-all cursor-pointer opacity-0 group-hover:opacity-100"
-                title={`Remove ${name}`}
+                aria-label={`Hapus ${name} dari daftar`}
               >
                 <X className="w-3 h-3" />
               </button>
@@ -135,8 +135,12 @@ export default function DinerSelector({
           </button>
           <button
             type="button"
-            onClick={() => { setShowInput(false); setNameInput(""); }}
+            onClick={() => {
+              setShowInput(false);
+              setNameInput("");
+            }}
             className="h-10 w-10 flex items-center justify-center rounded-xl bg-secondary hover:brightness-110 border border-border text-muted transition-all active:scale-95 cursor-pointer"
+            aria-label="Batal tambah orang"
           >
             <X className="w-4 h-4" />
           </button>
@@ -172,6 +176,7 @@ export default function DinerSelector({
               type="button"
               onClick={() => setActiveDinerName(null)}
               className="text-[10px] text-muted hover:text-primary transition-colors cursor-pointer"
+              aria-label="Hapus pilihan fast-assign aktif"
             >
               Clear
             </button>

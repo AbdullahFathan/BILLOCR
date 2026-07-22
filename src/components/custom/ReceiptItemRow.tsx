@@ -33,11 +33,11 @@ export default function ReceiptItemRow({
   /* ── Allocation math ───────────────────────────────────────── */
   const totalAssigned = Object.values(assignments).reduce(
     (sum, qty) => sum + qty,
-    0
+    0,
   );
   const remainingQty = Math.max(
     0,
-    parseFloat((item.qty - totalAssigned).toFixed(4))
+    parseFloat((item.qty - totalAssigned).toFixed(4)),
   );
   const isFullyAllocated = remainingQty === 0;
   const isUnallocated = totalAssigned === 0;
@@ -55,14 +55,22 @@ export default function ReceiptItemRow({
     const currentQty = assignments[dinerName] || 0;
     const increment = remainingQty >= 0.5 ? 0.5 : remainingQty;
     if (increment > 0)
-      onAssign(item.id, dinerName, parseFloat((currentQty + increment).toFixed(2)));
+      onAssign(
+        item.id,
+        dinerName,
+        parseFloat((currentQty + increment).toFixed(2)),
+      );
   };
 
   const handleDecrement = (dinerName: string) => {
     const currentQty = assignments[dinerName] || 0;
     if (currentQty > 0) {
       const decrement = currentQty >= 0.5 ? 0.5 : currentQty;
-      onAssign(item.id, dinerName, parseFloat((currentQty - decrement).toFixed(2)));
+      onAssign(
+        item.id,
+        dinerName,
+        parseFloat((currentQty - decrement).toFixed(2)),
+      );
     }
   };
 
@@ -78,14 +86,14 @@ export default function ReceiptItemRow({
   const rowBorderClass = isExpanded
     ? "border-primary shadow-[0_0_0_1px_theme(colors.primary)]"
     : !isFullyAllocated && totalAssigned > 0
-    ? "border-warning/40 hover:border-warning/70"
-    : "border-border hover:border-border-active/40";
+      ? "border-warning/40 hover:border-warning/70"
+      : "border-border hover:border-border-active/40";
 
   const rowBgClass = isExpanded
     ? "bg-surface"
     : !isFullyAllocated && totalAssigned > 0
-    ? "bg-warning/5"
-    : "bg-surface";
+      ? "bg-warning/5"
+      : "bg-surface";
 
   /* ────────────────────────────────────────────────────────────── */
   return (
@@ -95,12 +103,19 @@ export default function ReceiptItemRow({
       {/* ── Collapsed Header ─────────────────────────────────── */}
       <div
         onClick={onToggleExpand}
+        role="button"
+        tabIndex={0}
+        aria-expanded={isExpanded}
+        aria-label={`${isExpanded ? "Tutup" : "Buka"} detail ${item.name}`}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") onToggleExpand();
+        }}
         className="p-4 flex items-center justify-between cursor-pointer select-none gap-3"
       >
         {/* Left: name + meta */}
         <div className="flex-1 min-w-0 space-y-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <h4 className="font-semibold text-sm text-foreground truncate max-w-[180px]">
+            <h4 className="font-semibold text-sm text-foreground truncate max-w-45">
               {item.name}
             </h4>
 
@@ -187,7 +202,6 @@ export default function ReceiptItemRow({
       {/* ── Expanded Controls Drawer ──────────────────────────── */}
       {isExpanded && (
         <div className="border-t border-border/30 bg-surface-lowest p-4 space-y-4 animate-[fade-in_0.15s_ease-out]">
-
           {/* Allocation list */}
           {Object.keys(assignments).length > 0 ? (
             <div className="space-y-2">
@@ -205,7 +219,7 @@ export default function ReceiptItemRow({
                       <div className="w-7 h-7 rounded-full bg-primary/15 border border-primary/25 text-primary text-[10px] font-bold flex items-center justify-center shrink-0 font-heading">
                         {getInitials(dinerName).charAt(0)}
                       </div>
-                      <span className="text-xs font-semibold text-foreground truncate max-w-[110px]">
+                      <span className="text-xs font-semibold text-foreground truncate max-w-27.5">
                         {dinerName}
                       </span>
                     </div>
@@ -215,6 +229,7 @@ export default function ReceiptItemRow({
                       <button
                         type="button"
                         onClick={() => handleDecrement(dinerName)}
+                        aria-label={`Kurangi porsi ${dinerName} untuk ${item.name}`}
                         className="w-7 h-7 flex items-center justify-center rounded-lg bg-secondary hover:brightness-110 text-foreground transition-all active:scale-90 cursor-pointer border border-border"
                       >
                         <Minus className="w-3 h-3" />
@@ -226,6 +241,7 @@ export default function ReceiptItemRow({
                         type="button"
                         onClick={() => handleIncrement(dinerName)}
                         disabled={isFullyAllocated}
+                        aria-label={`Tambah porsi ${dinerName} untuk ${item.name}`}
                         className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all font-bold select-none border ${
                           isFullyAllocated
                             ? "bg-secondary/40 text-foreground/20 cursor-not-allowed border-border/30"
