@@ -45,6 +45,11 @@ export default function OCRScanner({
   const [countdown, setCountdown] = useState<string>("");
   const setRawText = useReceiptStore((state) => state.setRawText);
   const processingRef = useRef(false);
+  const onRateLimitedRef = useRef(onRateLimited);
+
+  useEffect(() => {
+    onRateLimitedRef.current = onRateLimited;
+  }, [onRateLimited]);
 
   /* ── Generate object URL for image preview ───────────── */
   useEffect(() => {
@@ -142,7 +147,7 @@ export default function OCRScanner({
           setStatus("rate_limited");
           setResetTime(resetMs);
           // Notify parent so it can block the FileUploader immediately
-          onRateLimited?.(resetMs);
+          onRateLimitedRef.current?.(resetMs);
           return;
         }
 
@@ -154,7 +159,7 @@ export default function OCRScanner({
           setStatus("rate_limited");
           setResetTime(resetMs);
           // Notify parent so it can block the FileUploader immediately
-          onRateLimited?.(resetMs);
+          onRateLimitedRef.current?.(resetMs);
           return;
         }
 

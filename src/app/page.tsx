@@ -9,7 +9,7 @@ import OCRScanner from "@/components/custom/OCRScanner";
 import DinerSelector from "@/components/custom/DinerSelector";
 import ReceiptItemRow from "@/components/custom/ReceiptItemRow";
 import BillSummaryCard from "@/components/custom/BillSummaryCard";
-import BottomNav, { NavTab } from "@/components/custom/BottomNav";
+import type { NavTab } from "@/components/custom/BottomNav";
 import AlertModal from "@/components/custom/AlertModal";
 import ShareReportButton from "@/components/custom/ShareReportButton";
 import { parseReceipt } from "@/lib/parser";
@@ -27,6 +27,23 @@ import {
   Utensils,
   LayoutList,
 } from "lucide-react";
+
+const RATE_LIMIT_KEY = "aura_split_rate_limit_reset";
+
+/** Read persisted rate-limit reset time (client only). */
+function readStoredRateLimitReset(): number | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const storedReset = localStorage.getItem(RATE_LIMIT_KEY);
+    if (!storedReset) return null;
+    const resetMs = parseInt(storedReset, 10);
+    if (!isNaN(resetMs) && Date.now() < resetMs) return resetMs;
+    localStorage.removeItem(RATE_LIMIT_KEY);
+  } catch (e) {
+    console.warn("Failed to read rate limit from localStorage:", e);
+  }
+  return null;
+}
 
 export default function Home() {
   const hasHydrated = useHasHydrated();
@@ -52,36 +69,24 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<NavTab>("scan");
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const [activeDinerName, setActiveDinerName] = useState<string | null>(null);
-  const [remainingUploads, setRemainingUploads] = useState<number>(5);
+  const [remainingUploads, setRemainingUploads] = useState<number>(() =>
+    readStoredRateLimitReset() !== null ? 0 : 5,
+  );
   const [rateLimitResetTime, setRateLimitResetTime] = useState<number | null>(
-    null,
+    () => readStoredRateLimitReset(),
   );
   const [parseError, setParseError] = useState(false);
+  const [rateLimitSynced, setRateLimitSynced] = useState(false);
 
-  /* ── Derived nav state ──────────────────────────────────────── */
-  // Which tabs are reachable right now
-  const hasItems = items.length > 0 && rawText;
-  const enabledTabs: NavTab[] = hasItems
-    ? ["scan", "assign", "settle"]
-    : ["scan"];
-
-  /* ── Check stored rate limit state on mount / hydration ──────── */
-  useEffect(() => {
-    try {
-      const storedReset = localStorage.getItem("aura_split_rate_limit_reset");
-      if (storedReset) {
-        const resetMs = parseInt(storedReset, 10);
-        if (!isNaN(resetMs) && Date.now() < resetMs) {
-          setRemainingUploads(0);
-          setRateLimitResetTime(resetMs);
-        } else {
-          localStorage.removeItem("aura_split_rate_limit_reset");
-        }
-      }
-    } catch (e) {
-      console.warn("Failed to read rate limit from localStorage:", e);
+  // Restore rate limit from localStorage after hydration (render-time state adjust).
+  if (hasHydrated && !rateLimitSynced) {
+    setRateLimitSynced(true);
+    const resetMs = readStoredRateLimitReset();
+    if (resetMs !== null) {
+      setRemainingUploads(0);
+      setRateLimitResetTime(resetMs);
     }
-  }, []);
+  }
 
   /* ── Auto-clear rate limit state when countdown expires ───────── */
   useEffect(() => {
@@ -91,7 +96,7 @@ export default function Home() {
         setRemainingUploads(5);
         setRateLimitResetTime(null);
         try {
-          localStorage.removeItem("aura_split_rate_limit_reset");
+          localStorage.removeItem(RATE_LIMIT_KEY);
         } catch (e) {
           console.warn("Failed to clear rate limit from localStorage:", e);
         }
@@ -116,7 +121,7 @@ export default function Home() {
     // Clear any previous rate limit state on success
     setRateLimitResetTime(null);
     try {
-      localStorage.removeItem("aura_split_rate_limit_reset");
+      localStorage.removeItem(RATE_LIMIT_KEY);
     } catch (e) {
       console.warn("Failed to remove rate limit from localStorage:", e);
     }
@@ -137,7 +142,7 @@ export default function Home() {
     setRemainingUploads(0);
     setRateLimitResetTime(resetTimeMs);
     try {
-      localStorage.setItem("aura_split_rate_limit_reset", String(resetTimeMs));
+      localStorage.setItem(RATE_LIMIT_KEY, String(resetTimeMs));
     } catch (e) {
       console.warn("Failed to save rate limit to localStorage:", e);
     }
@@ -153,7 +158,7 @@ export default function Home() {
       setRemainingUploads(5);
       setRateLimitResetTime(null);
       try {
-        localStorage.removeItem("aura_split_rate_limit_reset");
+        localStorage.removeItem(RATE_LIMIT_KEY);
       } catch (e) {
         console.warn("Failed to remove rate limit from localStorage:", e);
       }
@@ -180,12 +185,6 @@ export default function Home() {
       </div>
     );
   }
-
-  /* ── Tab: handle nav change ─────────────────────────────────── */
-  const handleTabChange = (tab: NavTab) => {
-    if (!enabledTabs.includes(tab)) return;
-    setActiveTab(tab);
-  };
 
   /* ============================================================
      RENDER
