@@ -18,6 +18,8 @@ interface OCRScannerProps {
   imageBlob: Blob;
   onCompleted: (rawText: string, remainingUploads: number) => void;
   onCancel: () => void;
+  /** Called when the API returns 429 — parent should set remainingUploads=0 */
+  onRateLimited?: (resetTimeMs: number) => void;
 }
 
 /* ─── Scanning step labels (indeterminate — no % from Mistral) ──── */
@@ -33,6 +35,7 @@ export default function OCRScanner({
   imageBlob,
   onCompleted,
   onCancel,
+  onRateLimited,
 }: OCRScannerProps) {
   const [status, setStatus] = useState<UploadStatus>("compressing");
   const [stepIndex, setStepIndex] = useState(0);
@@ -129,28 +132,38 @@ export default function OCRScanner({
           }),
         });
 
-        const json: OCRResponse = await res.json();
-
-        // 4. Handle 429 rate limit
-        if (
-          res.status === 429 ||
-          (json.success === false && json.error === "RATE_LIMIT_EXCEEDED")
-        ) {
+        // 4. Handle 429 rate limit BEFORE parsing JSON
+        //    (guards against plain-text body that would crash res.json())
+        if (res.status === 429) {
+          const resetHeader = res.headers.get("X-RateLimit-Reset");
+          const resetMs = resetHeader
+            ? parseInt(resetHeader) * 1000
+            : Date.now() + 86_400_000;
           setStatus("rate_limited");
-          const resetMs =
-            json.success === false && json.reset
-              ? json.reset
-              : Date.now() + 86_400_000;
           setResetTime(resetMs);
+          // Notify parent so it can block the FileUploader immediately
+          onRateLimited?.(resetMs);
           return;
         }
 
-        // 5. Handle other errors
+        const json: OCRResponse = await res.json();
+
+        // 5. Handle other API-level errors reported in body
+        if (json.success === false && json.error === "RATE_LIMIT_EXCEEDED") {
+          const resetMs = json.reset ?? Date.now() + 86_400_000;
+          setStatus("rate_limited");
+          setResetTime(resetMs);
+          // Notify parent so it can block the FileUploader immediately
+          onRateLimited?.(resetMs);
+          return;
+        }
+
+        // 6. Handle other errors
         if (!json.success) {
           throw new Error(json.message ?? "Unknown OCR error.");
         }
 
-        // 6. Success path
+        // 7. Success path
         setStatus("done");
         const { text, remainingUploads } = json.data;
         setRawText(text);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useReceiptStore } from "@/hooks/useReceiptStore";
 import { useHasHydrated } from "@/hooks/useHasHydrated";
 
@@ -53,6 +53,9 @@ export default function Home() {
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const [activeDinerName, setActiveDinerName] = useState<string | null>(null);
   const [remainingUploads, setRemainingUploads] = useState<number>(5);
+  const [rateLimitResetTime, setRateLimitResetTime] = useState<number | null>(
+    null,
+  );
   const [parseError, setParseError] = useState(false);
 
   /* ── Derived nav state ──────────────────────────────────────── */
@@ -61,6 +64,43 @@ export default function Home() {
   const enabledTabs: NavTab[] = hasItems
     ? ["scan", "assign", "settle"]
     : ["scan"];
+
+  /* ── Check stored rate limit state on mount / hydration ──────── */
+  useEffect(() => {
+    try {
+      const storedReset = localStorage.getItem("aura_split_rate_limit_reset");
+      if (storedReset) {
+        const resetMs = parseInt(storedReset, 10);
+        if (!isNaN(resetMs) && Date.now() < resetMs) {
+          setRemainingUploads(0);
+          setRateLimitResetTime(resetMs);
+        } else {
+          localStorage.removeItem("aura_split_rate_limit_reset");
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to read rate limit from localStorage:", e);
+    }
+  }, []);
+
+  /* ── Auto-clear rate limit state when countdown expires ───────── */
+  useEffect(() => {
+    if (!rateLimitResetTime) return;
+    const checkExpiry = () => {
+      if (Date.now() >= rateLimitResetTime) {
+        setRemainingUploads(5);
+        setRateLimitResetTime(null);
+        try {
+          localStorage.removeItem("aura_split_rate_limit_reset");
+        } catch (e) {
+          console.warn("Failed to clear rate limit from localStorage:", e);
+        }
+      }
+    };
+    checkExpiry();
+    const interval = setInterval(checkExpiry, 5000);
+    return () => clearInterval(interval);
+  }, [rateLimitResetTime]);
 
   /* ── File handling ──────────────────────────────────────────── */
   // Compression is now delegated to OCRScanner before the API call
@@ -73,6 +113,13 @@ export default function Home() {
     setIsScanning(false);
     setSelectedFile(null);
     setRemainingUploads(remaining);
+    // Clear any previous rate limit state on success
+    setRateLimitResetTime(null);
+    try {
+      localStorage.removeItem("aura_split_rate_limit_reset");
+    } catch (e) {
+      console.warn("Failed to remove rate limit from localStorage:", e);
+    }
     const parsed = parseReceipt(text);
     setItems(parsed.items);
     setTax(parsed.tax);
@@ -85,11 +132,32 @@ export default function Home() {
     setActiveTab("assign");
   };
 
+  /** Called by OCRScanner when server returns HTTP 429 */
+  const handleRateLimited = (resetTimeMs: number) => {
+    setRemainingUploads(0);
+    setRateLimitResetTime(resetTimeMs);
+    try {
+      localStorage.setItem("aura_split_rate_limit_reset", String(resetTimeMs));
+    } catch (e) {
+      console.warn("Failed to save rate limit to localStorage:", e);
+    }
+  };
+
   const handleCancel = () => {
     setIsScanning(false);
     setSelectedFile(null);
     resetStore();
     setActiveTab("scan");
+    // If the rate limit has already reset, clear the block
+    if (rateLimitResetTime && Date.now() >= rateLimitResetTime) {
+      setRemainingUploads(5);
+      setRateLimitResetTime(null);
+      try {
+        localStorage.removeItem("aura_split_rate_limit_reset");
+      } catch (e) {
+        console.warn("Failed to remove rate limit from localStorage:", e);
+      }
+    }
   };
 
   const handleReset = () => {
@@ -143,6 +211,7 @@ export default function Home() {
               imageBlob={selectedFile}
               onCompleted={handleOCRCompleted}
               onCancel={handleCancel}
+              onRateLimited={handleRateLimited}
             />
           )}
 
@@ -598,11 +667,11 @@ export default function Home() {
         </main>
 
         {/* ── Fixed Bottom Nav ── */}
-        <BottomNav
+        {/* <BottomNav
           activeTab={activeTab}
           onTabChange={handleTabChange}
           enabledTabs={enabledTabs}
-        />
+        /> */}
       </div>
     </>
   );
