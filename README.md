@@ -1,4 +1,4 @@
-# Split Bill OCR
+# Bagi Bill
 
 Web app that turns a restaurant receipt photo into a fair bill split. Upload a receipt, extract items via OCR, assign portions to diners, and copy a formatted recap to share in your group chat.
 

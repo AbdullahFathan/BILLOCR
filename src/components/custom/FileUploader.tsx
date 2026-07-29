@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import { Camera, Upload, ScanLine, Zap, Cloud, Clock } from "lucide-react";
+import { Camera, Upload, ScanLine, Cloud } from "lucide-react";
 import { useReceiptStore } from "@/hooks/useReceiptStore";
 import AlertModal from "@/components/custom/AlertModal";
 
@@ -21,8 +21,8 @@ export default function FileUploader({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const resetStore = useReceiptStore((state) => state.resetStore);
 
-  // Batas ukuran file: 5 MB
-  const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+  // Batas ukuran file: 10 MB
+  const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -202,22 +202,6 @@ export default function FileUploader({
           )}
         </div>
 
-        {/* ── Feature Chips row ───────────────────────────────────── */}
-        <div className="flex items-center justify-center gap-2 flex-wrap">
-          {[
-            { icon: Zap, label: "Smart OCR" },
-            { icon: Cloud, label: "Server-side" },
-            { icon: Clock, label: "2-hr Auto Save" },
-          ].map(({ icon: Icon, label }) => (
-            <span
-              key={label}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface border border-border text-xs font-medium text-muted"
-            >
-              <Icon className="w-3 h-3 text-primary" strokeWidth={2} />
-              {label}
-            </span>
-          ))}
-        </div>
       </div>
     </>
   );

@@ -1,13 +1,13 @@
 # UI Component Registry
 
-This registry catalogs the UI components built for the Split Bill OCR application, tracking their design patterns, file locations, and implementation statuses.
+This registry catalogs the UI components built for the BagiBill application, tracking their design patterns, file locations, and implementation statuses.
 
 ## Component Index
 
 | Component Name | Description | Path | Status |
 | :--- | :--- | :--- | :--- |
-| **`FileUploader`** | Upload area for drag-and-drop or camera capture of receipt. | `src/components/custom/FileUploader.tsx` | ✅ Complete |
-| **`OCRScanner`** | Scanning feedback component with progress bar and animated scan beam. | `src/components/custom/OCRScanner.tsx` | ✅ Complete |
+| **`FileUploader`** | Upload area for drag-and-drop or camera capture of receipt. Shows `remainingUploads/5` badge (restored from localStorage + `GET /api/ocr/quota` after refresh). | `src/components/custom/FileUploader.tsx` | ✅ Complete |
+| **`OCRScanner`** | Scanning feedback with progress bar and scan beam. Propagates `remaining`/`reset` on success, 429, and `API_ERROR` (token already consumed). | `src/components/custom/OCRScanner.tsx` | ✅ Complete |
 | **`DinerSelector`** | Controls to add, edit, or select participants (diners). | `src/components/custom/DinerSelector.tsx` | ✅ Complete |
 | **`ReceiptItemRow`** | Individual receipt item card displaying pricing, qty, and allocation controls. | `src/components/custom/ReceiptItemRow.tsx` | ✅ Complete |
 | **`BillSummaryCard`** | Display card showing subtotal, taxes, service charges, and individual breakdown. | `src/components/custom/BillSummaryCard.tsx` | ✅ Complete |
@@ -31,7 +31,7 @@ This registry catalogs the UI components built for the Split Bill OCR applicatio
 - **Props**: Receives final calculated list of diners, subtotals, tax fractions, and receipt name.
 - **Formatting Template**:
   ```
-  🧾 *Split Bill: [Store Name]*
+  🧾 *BagiBill: [Store Name]*
   -------------------------
   👤 *[Diner Name]*: Rp [Individual Total]
   - [Item Name] (x[Qty]): Rp [Share Price]

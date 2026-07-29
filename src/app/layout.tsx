@@ -15,8 +15,8 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "BillOCR",
-  description: "Automate sharing bills using local client-side OCR.",
+  title: "Bagi Bill",
+  description: "Scan your receipt & split the bill fairly — all in your browser.",
 };
 
 export default function RootLayout({
