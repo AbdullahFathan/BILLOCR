@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import { Camera, Upload, ScanLine, Zap, Cloud, Clock } from "lucide-react";
+import { Camera, Upload, ScanLine, Cloud } from "lucide-react";
 import { useReceiptStore } from "@/hooks/useReceiptStore";
 import AlertModal from "@/components/custom/AlertModal";
 

@@ -105,6 +105,12 @@ This progress tracker is the single source of truth for the implementation statu
 - [x] Update `FileUploader.tsx` — tambah `remainingUploads` prop + counter badge ✅ _Complete_
 - [x] Update `page.tsx` — hapus `isCompressing`, update signature `handleOCRCompleted`, pass `remainingUploads` ✅ _Complete_
 - [x] Fix quota counter — `limit()` + `getRemaining()` both in Node routes; remove Edge consume + hardcoded remaining fallback ✅ _Complete_
+- [x] Fix quota sync races — `quotaEpoch` + ignore stale peek; apply `remaining` on `API_ERROR`; re-peek on scan end / reset expiry; reject oversized base64 before `limit()` ✅ _Complete_
 - [x] Update `context/library-docs.md` ✅ _Complete_
 - [x] Update `context/architecture.md` ✅ _Complete_
 - [x] Update `src/app/globals.css` — tambah `@keyframes indeterminate` ✅ _Complete_
+
+### Milestone 7: Branding
+
+- [x] Rename product brand **Aura Split / Split Bill OCR → BagiBill** ✅ _Complete_
+  - `layout.tsx` metadata title, `page.tsx` hero H1, share recap header, README, project-overview, ui-registry

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useReceiptStore } from "@/hooks/useReceiptStore";
 import { useHasHydrated } from "@/hooks/useHasHydrated";
 
@@ -64,7 +64,11 @@ function clearStoredQuota(): void {
   }
 }
 
-/** Read persisted scan quota (client only). Expired → treat as full limit. */
+/**
+ * Read persisted scan quota (client only).
+ * Expired cache is cleared and returns null — caller should re-peek Redis
+ * instead of assuming DAILY_SCAN_LIMIT.
+ */
 function readStoredQuota(): StoredQuota | null {
   if (typeof window === "undefined") return null;
   try {
@@ -79,7 +83,7 @@ function readStoredQuota(): StoredQuota | null {
       ) {
         if (Date.now() < parsed.reset) return parsed;
         clearStoredQuota();
-        return { remaining: DAILY_SCAN_LIMIT, reset: 0 };
+        return null;
       }
     }
 
@@ -141,6 +145,58 @@ export default function Home() {
   const [parseError, setParseError] = useState(false);
   const [rateLimitSynced, setRateLimitSynced] = useState(false);
 
+  /** Bumped on every OCR-driven quota write so stale peeks cannot overwrite. */
+  const quotaEpochRef = useRef(0);
+  const isScanningRef = useRef(false);
+  const wasScanningRef = useRef(false);
+
+  /** Apply remaining/reset to state + localStorage. OCR paths bump epoch. */
+  const applyQuota = useCallback(
+    (remaining: number, resetMs: number, options?: { bumpEpoch?: boolean }) => {
+      const normalizedReset = normalizeResetMs(resetMs);
+      if (options?.bumpEpoch) {
+        quotaEpochRef.current += 1;
+      }
+      setRemainingUploads(remaining);
+      if (remaining === 0) {
+        setRateLimitResetTime(normalizedReset);
+      } else {
+        setRateLimitResetTime(null);
+      }
+      writeStoredQuota(remaining, normalizedReset);
+    },
+    [],
+  );
+
+  /**
+   * Peek Redis remaining without consuming a scan.
+   * Applies only if epoch is unchanged and a scan is not in flight.
+   */
+  const syncQuotaFromServer = useCallback(async () => {
+    const startedAt = quotaEpochRef.current;
+    try {
+      const res = await fetch("/api/ocr/quota");
+      if (!res.ok) return;
+      const json = (await res.json()) as {
+        success?: boolean;
+        data?: { remainingUploads?: number; reset?: number };
+      };
+      if (!json.success || !json.data) return;
+      if (quotaEpochRef.current !== startedAt) return;
+      if (isScanningRef.current) return;
+
+      const remaining =
+        typeof json.data.remainingUploads === "number"
+          ? json.data.remainingUploads
+          : DAILY_SCAN_LIMIT;
+      applyQuota(remaining, normalizeResetMs(json.data.reset), {
+        bumpEpoch: false,
+      });
+    } catch (e) {
+      console.warn("Failed to sync scan quota:", e);
+    }
+  }, [applyQuota]);
+
   // Restore rate limit / quota from localStorage after hydration (render-time state adjust).
   if (hasHydrated && !rateLimitSynced) {
     setRateLimitSynced(true);
@@ -151,59 +207,65 @@ export default function Home() {
     }
   }
 
-  /* ── Sync remaining quota from Redis (does not consume a scan) ── */
+  /* ── Sync remaining quota from Redis on mount (does not consume) ── */
   useEffect(() => {
     if (!hasHydrated) return;
     let cancelled = false;
 
-    async function syncQuota() {
+    async function syncOnMount() {
+      const startedAt = quotaEpochRef.current;
       try {
         const res = await fetch("/api/ocr/quota");
-        if (!res.ok) return;
+        if (!res.ok || cancelled) return;
         const json = (await res.json()) as {
           success?: boolean;
           data?: { remainingUploads?: number; reset?: number };
         };
         if (cancelled || !json.success || !json.data) return;
+        if (quotaEpochRef.current !== startedAt) return;
+        if (isScanningRef.current) return;
 
         const remaining =
           typeof json.data.remainingUploads === "number"
             ? json.data.remainingUploads
             : DAILY_SCAN_LIMIT;
-        const resetMs = normalizeResetMs(json.data.reset);
-
-        setRemainingUploads(remaining);
-        if (remaining === 0) {
-          setRateLimitResetTime(resetMs);
-        } else {
-          setRateLimitResetTime(null);
-        }
-        writeStoredQuota(remaining, resetMs);
+        applyQuota(remaining, normalizeResetMs(json.data.reset), {
+          bumpEpoch: false,
+        });
       } catch (e) {
-        console.warn("Failed to sync scan quota:", e);
+        if (!cancelled) console.warn("Failed to sync scan quota:", e);
       }
     }
 
-    syncQuota();
+    syncOnMount();
     return () => {
       cancelled = true;
     };
-  }, [hasHydrated]);
+  }, [hasHydrated, applyQuota]);
 
-  /* ── Auto-clear rate limit state when countdown expires ───────── */
+  /* ── Re-peek when a scan session ends (Redis is source of truth) ── */
+  useEffect(() => {
+    isScanningRef.current = isScanning;
+    if (wasScanningRef.current && !isScanning && hasHydrated) {
+      void syncQuotaFromServer();
+    }
+    wasScanningRef.current = isScanning;
+  }, [isScanning, hasHydrated, syncQuotaFromServer]);
+
+  /* ── When countdown expires: clear local block and re-peek Redis ── */
   useEffect(() => {
     if (!rateLimitResetTime) return;
     const checkExpiry = () => {
       if (Date.now() >= rateLimitResetTime) {
-        setRemainingUploads(DAILY_SCAN_LIMIT);
         setRateLimitResetTime(null);
         clearStoredQuota();
+        void syncQuotaFromServer();
       }
     };
     checkExpiry();
     const interval = setInterval(checkExpiry, 5000);
     return () => clearInterval(interval);
-  }, [rateLimitResetTime]);
+  }, [rateLimitResetTime, syncQuotaFromServer]);
 
   /* ── File handling ──────────────────────────────────────────── */
   // Compression is now delegated to OCRScanner before the API call
@@ -219,14 +281,7 @@ export default function Home() {
   ) => {
     setIsScanning(false);
     setSelectedFile(null);
-    setRemainingUploads(remaining);
-    const normalizedReset = normalizeResetMs(resetMs);
-    if (remaining === 0) {
-      setRateLimitResetTime(normalizedReset);
-    } else {
-      setRateLimitResetTime(null);
-    }
-    writeStoredQuota(remaining, normalizedReset);
+    applyQuota(remaining, normalizeResetMs(resetMs), { bumpEpoch: true });
     const parsed = parseReceipt(text);
     setItems(parsed.items);
     setTax(parsed.tax);
@@ -241,9 +296,12 @@ export default function Home() {
 
   /** Called by OCRScanner when server returns HTTP 429 */
   const handleRateLimited = (resetTimeMs: number) => {
-    setRemainingUploads(0);
-    setRateLimitResetTime(resetTimeMs);
-    writeStoredQuota(0, resetTimeMs);
+    applyQuota(0, resetTimeMs, { bumpEpoch: true });
+  };
+
+  /** Called when OCR fails after a token was already consumed */
+  const handleQuotaUpdate = (remaining: number, resetMs: number) => {
+    applyQuota(remaining, resetMs, { bumpEpoch: true });
   };
 
   const handleCancel = () => {
@@ -251,11 +309,11 @@ export default function Home() {
     setSelectedFile(null);
     resetStore();
     setActiveTab("scan");
-    // If the rate limit has already reset, clear the block
+    // If the rate limit has already reset, clear local block and re-peek
     if (rateLimitResetTime && Date.now() >= rateLimitResetTime) {
-      setRemainingUploads(DAILY_SCAN_LIMIT);
       setRateLimitResetTime(null);
       clearStoredQuota();
+      void syncQuotaFromServer();
     }
   };
 
@@ -305,6 +363,7 @@ export default function Home() {
               onCompleted={handleOCRCompleted}
               onCancel={handleCancel}
               onRateLimited={handleRateLimited}
+              onQuotaUpdate={handleQuotaUpdate}
             />
           )}
 
@@ -321,7 +380,7 @@ export default function Home() {
                 </div>
 
                 <h1 className="text-3xl font-bold font-heading text-foreground tracking-tight">
-                  Aura Split
+                  BagiBill
                 </h1>
                 <p className="text-sm text-muted max-w-60uto leading-relaxed">
                   Scan your receipt & split the bill fairly — all in your

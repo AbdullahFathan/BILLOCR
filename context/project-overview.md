@@ -1,5 +1,5 @@
 # Product Requirements Document (PRD)
-**Nama Produk:** Split Bill OCR (MVP)
+**Nama Produk:** BagiBill (MVP)
 **Product Owner / Lead Engineer:** Abdullah Fathan
 **Tanggal:** 22 Juni 2026
 **Status Dokumen:** Approved for Development (Client-Side Architecture)
@@ -8,7 +8,7 @@
 ---
 
 ## 1. Ringkasan Eksekutif
-Aplikasi Split Bill OCR adalah utilitas berbasis web yang mengotomatisasi pembagian tagihan restoran secara adil. Memanfaatkan teknologi *Client-Side Optical Character Recognition* (WebAssembly OCR), ekstraksi teks dari foto struk diproses langsung di *browser* pengguna secara instan dan aman. Data riwayat tagihan dan relasi pembagian disimpan langsung di dalam perangkat lokal menggunakan *Local Storage*, menjamin 100% privasi pengguna. Pengguna dapat menyalin hasil kalkulasi akhir langsung ke clipboard dalam bentuk teks yang terformat rapi.
+Aplikasi BagiBill adalah utilitas berbasis web yang mengotomatisasi pembagian tagihan restoran secara adil. Memanfaatkan teknologi *Client-Side Optical Character Recognition* (WebAssembly OCR), ekstraksi teks dari foto struk diproses langsung di *browser* pengguna secara instan dan aman. Data riwayat tagihan dan relasi pembagian disimpan langsung di dalam perangkat lokal menggunakan *Local Storage*, menjamin 100% privasi pengguna. Pengguna dapat menyalin hasil kalkulasi akhir langsung ke clipboard dalam bentuk teks yang terformat rapi.
 
 ## 2. Objektif & Metrik Keberhasilan
 * **Objektif Pembelajaran:** 

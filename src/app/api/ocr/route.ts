@@ -66,6 +66,19 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+
+    // Match client 10 MB file cap (base64 is ~4/3 of binary size)
+    const MAX_BASE64_LENGTH = Math.ceil(10 * 1024 * 1024 * (4 / 3));
+    if (imageBase64.length > MAX_BASE64_LENGTH) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "INVALID_BODY",
+          message: "Ukuran gambar terlalu besar. Maksimal 10 MB.",
+        },
+        { status: 400 },
+      );
+    }
   } catch {
     return NextResponse.json(
       {

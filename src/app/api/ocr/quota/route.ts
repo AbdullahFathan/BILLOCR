@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { clientIp, ratelimit } from "@/lib/ratelimit";
 
+export const runtime = "nodejs";
+
 /**
  * GET /api/ocr/quota
  *

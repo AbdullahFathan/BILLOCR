@@ -83,7 +83,7 @@ return NextResponse.json({
 ```
 
 ### Client persistence
-After each successful OCR (and on 429), the client stores `{ remaining, reset }` in `localStorage` (`aura_split_scan_quota`) and re-syncs from `GET /api/ocr/quota` on mount so a hard refresh keeps the real Redis remaining.
+After each successful OCR, 429, and `API_ERROR` (token already consumed), the client stores `{ remaining, reset }` in `localStorage` (`aura_split_scan_quota`) via a shared `applyQuota` helper. Mount peek from `GET /api/ocr/quota` is race-safe: a `quotaEpoch` bumps on OCR-driven writes so stale peeks are ignored; peeks also skip while a scan is in flight and re-run when scanning ends. On local reset expiry, clear cache and re-peek Redis — never assume remaining is back to 5.
 ---
 
 ## 3. Upstash Redis Environment Variables

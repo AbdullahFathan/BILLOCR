@@ -24,6 +24,8 @@ interface OCRScannerProps {
   onCancel: () => void;
   /** Called when the API returns 429 — parent should set remainingUploads=0 */
   onRateLimited?: (resetTimeMs: number) => void;
+  /** Called when a consumed token updates remaining (e.g. API_ERROR after limit()) */
+  onQuotaUpdate?: (remaining: number, resetMs: number) => void;
 }
 
 /** Upstash reset is ms; some RateLimit headers use seconds. */
@@ -54,6 +56,7 @@ export default function OCRScanner({
   onCompleted,
   onCancel,
   onRateLimited,
+  onQuotaUpdate,
 }: OCRScannerProps) {
   const [status, setStatus] = useState<UploadStatus>("compressing");
   const [stepIndex, setStepIndex] = useState(0);
@@ -64,10 +67,15 @@ export default function OCRScanner({
   const setRawText = useReceiptStore((state) => state.setRawText);
   const processingRef = useRef(false);
   const onRateLimitedRef = useRef(onRateLimited);
+  const onQuotaUpdateRef = useRef(onQuotaUpdate);
 
   useEffect(() => {
     onRateLimitedRef.current = onRateLimited;
   }, [onRateLimited]);
+
+  useEffect(() => {
+    onQuotaUpdateRef.current = onQuotaUpdate;
+  }, [onQuotaUpdate]);
 
   /* ── Generate object URL for image preview ───────────── */
   useEffect(() => {
@@ -188,8 +196,15 @@ export default function OCRScanner({
           return;
         }
 
-        // 6. Handle other errors
+        // 6. Handle other errors (token may already be consumed — sync remaining)
         if (!json.success) {
+          if (typeof json.remaining === "number") {
+            const resetMs = normalizeResetMs(
+              json.reset,
+              res.headers.get("X-RateLimit-Reset"),
+            );
+            onQuotaUpdateRef.current?.(json.remaining, resetMs);
+          }
           throw new Error(json.message ?? "Unknown OCR error.");
         }
 

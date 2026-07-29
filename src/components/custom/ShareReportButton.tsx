@@ -42,7 +42,7 @@ export default function ShareReportButton({
     const grandTotal = overallSubtotal + tax + serviceCharge;
     const breakdowns = calcDinerBreakdowns(diners, items, assignments, tax, serviceCharge);
 
-    let text = `🧾 *Split Bill: Struk Belanja*\n`;
+    let text = `🧾 *Bagi Bill: Struk Belanja*\n`;
     text += `-------------------------\n`;
 
     breakdowns.forEach((diner) => {

@@ -15,7 +15,7 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Aura Split",
+  title: "Bagi Bill",
   description: "Scan your receipt & split the bill fairly — all in your browser.",
 };
 
