@@ -35,39 +35,55 @@ export async function extractTextFromImage(
 
 ---
 
-## 2. Upstash Redis Rate Limiting (Edge Middleware)
+## 2. Upstash Redis Rate Limiting (OCR Route Handlers)
 
-Rate limiting is enforced at the Edge using `@upstash/ratelimit` in `middleware.ts`.
+Rate limiting is enforced in the **Node.js Route Handlers** using `@upstash/ratelimit`.
 It blocks users who exceed **5 OCR uploads per 24 hours**, identified by IP address.
 
+Consume (`limit`) and peek (`getRemaining`) must share the same runtime and `clientIp()` so the Redis key matches after refresh.
+
 ### Key Rules
-- **Middleware only**: The `Ratelimit` instance lives in `middleware.ts`. Do not instantiate it inside Route Handlers or Client Components.
+- **Consume in POST /api/ocr**: Call `ratelimit.limit(ip)` in `src/app/api/ocr/route.ts` before Mistral. Return `remainingUploads` + `reset` from that result — never invent a fallback like `4`.
+- **Quota peek in GET /api/ocr/quota**: Call `ratelimit.getRemaining(ip)` — reads Redis without spending a scan.
+- **Shared helper**: Instantiation lives in `src/lib/ratelimit.ts` only. Do not call `limit()` from Client Components.
 - **Algorithm**: Use `Ratelimit.slidingWindow(5, '24 h')` — more accurate than fixed window at period boundaries.
 - **Prefix**: Always use `'billocr:ocr_upload'` as the key prefix to namespace keys in Redis.
-- **Reading remaining**: The middleware sets `X-RateLimit-Remaining` on forwarded requests. The Route Handler reads this header to include `remainingUploads` in the response.
+- **No Edge consume**: Do not call `limit()` from middleware — Edge vs Node IP headers can diverge and break the Scan counter after refresh.
 
-### Pattern (`middleware.ts`)
+### Pattern (`src/lib/ratelimit.ts` + route handlers)
 
 ```typescript
-import { Ratelimit } from '@upstash/ratelimit';
-import { Redis } from '@upstash/redis';
+import { clientIp, ratelimit } from '@/lib/ratelimit';
 
-const ratelimit = new Ratelimit({
-  redis: Redis.fromEnv(), // reads UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN
-  limiter: Ratelimit.slidingWindow(5, '24 h'),
-  prefix: 'billocr:ocr_upload',
-  analytics: true,
-});
-
-// In middleware function:
-const ip = request.ip ?? 'anonymous';
+// POST /api/ocr — consume one token
+const ip = clientIp(request);
 const { success, limit, remaining, reset } = await ratelimit.limit(ip);
 
 if (!success) {
-  return NextResponse.json({ error: 'RATE_LIMIT_EXCEEDED', reset }, { status: 429 });
+  return NextResponse.json(
+    { success: false, error: 'RATE_LIMIT_EXCEEDED', reset, remaining: 0 },
+    { status: 429 },
+  );
 }
+
+// success body includes the real remaining from Redis
+return NextResponse.json({
+  success: true,
+  data: { text, remainingUploads: remaining, reset },
+});
 ```
 
+```typescript
+// GET /api/ocr/quota — peek only
+const { remaining, reset, limit } = await ratelimit.getRemaining(ip);
+return NextResponse.json({
+  success: true,
+  data: { remainingUploads: remaining, reset, limit },
+});
+```
+
+### Client persistence
+After each successful OCR (and on 429), the client stores `{ remaining, reset }` in `localStorage` (`aura_split_scan_quota`) and re-syncs from `GET /api/ocr/quota` on mount so a hard refresh keeps the real Redis remaining.
 ---
 
 ## 3. Upstash Redis Environment Variables

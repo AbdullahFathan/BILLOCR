@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractTextFromImage } from "@/lib/mistralOCR";
+import { clientIp, ratelimit } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 
@@ -10,16 +11,16 @@ export const runtime = "nodejs";
  *   - imageBase64: string  (base64-encoded image, no data URL prefix)
  *   - mimeType: string     (e.g. "image/jpeg")
  *
- * Rate limiting is handled upstream by middleware.ts (Upstash Redis).
- * This route reads the X-RateLimit-Remaining header forwarded by middleware.
+ * Rate limiting is enforced here (same Node runtime as GET /api/ocr/quota)
+ * so consume + peek share the same IP key in Redis.
  *
  * Returns:
- *   200 { success: true,  data: { text: string, remainingUploads: number } }
- *   400 { success: false, error: "INVALID_BODY" }
+ *   200 { success: true,  data: { text, remainingUploads, reset } }
+ *   400 { success: false, error: "INVALID_BODY" | "INVALID_MIME_TYPE" }
+ *   429 { success: false, error: "RATE_LIMIT_EXCEEDED", reset }
  *   500 { success: false, error: "API_ERROR", message: string }
  */
 export async function POST(request: NextRequest) {
-  // Parse request body
   let imageBase64: string;
   let mimeType: string;
 
@@ -30,19 +31,31 @@ export async function POST(request: NextRequest) {
 
     if (!imageBase64 || typeof imageBase64 !== "string") {
       return NextResponse.json(
-        { success: false, error: "INVALID_BODY", message: "imageBase64 is required." },
-        { status: 400 }
+        {
+          success: false,
+          error: "INVALID_BODY",
+          message: "imageBase64 is required.",
+        },
+        { status: 400 },
       );
     }
     if (!mimeType || typeof mimeType !== "string") {
       return NextResponse.json(
-        { success: false, error: "INVALID_BODY", message: "mimeType is required." },
-        { status: 400 }
+        {
+          success: false,
+          error: "INVALID_BODY",
+          message: "mimeType is required.",
+        },
+        { status: 400 },
       );
     }
 
-    // Whitelist MIME types — hanya terima format gambar yang valid
-    const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    const ALLOWED_MIME_TYPES = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+    ];
     if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
       return NextResponse.json(
         {
@@ -50,38 +63,85 @@ export async function POST(request: NextRequest) {
           error: "INVALID_MIME_TYPE",
           message: `Tipe file tidak didukung: ${mimeType}. Gunakan JPEG, PNG, WebP, atau GIF.`,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
   } catch {
     return NextResponse.json(
-      { success: false, error: "INVALID_BODY", message: "Invalid JSON body." },
-      { status: 400 }
+      {
+        success: false,
+        error: "INVALID_BODY",
+        message: "Invalid JSON body.",
+      },
+      { status: 400 },
     );
   }
 
-  // Read remaining uploads from header set by middleware
-  const remainingHeader = request.headers.get("X-RateLimit-Remaining");
-  const remainingUploads = remainingHeader !== null ? parseInt(remainingHeader, 10) : 4;
+  // Consume one scan token — remaining comes from Redis, not middleware headers
+  const ip = clientIp(request);
+  const { success, limit, remaining, reset } = await ratelimit.limit(ip);
 
-  // Call Mistral OCR
+  if (!success) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "RATE_LIMIT_EXCEEDED",
+        message: `Batas upload harian tercapai (${limit}x per hari). Coba lagi besok.`,
+        reset,
+        remaining: 0,
+      },
+      {
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": String(limit),
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": String(reset),
+        },
+      },
+    );
+  }
+
   try {
     const text = await extractTextFromImage(imageBase64, mimeType);
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        text,
-        remainingUploads: isNaN(remainingUploads) ? 4 : remainingUploads,
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          text,
+          remainingUploads: remaining,
+          reset,
+        },
       },
-    });
+      {
+        headers: {
+          "X-RateLimit-Limit": String(limit),
+          "X-RateLimit-Remaining": String(remaining),
+          "X-RateLimit-Reset": String(reset),
+        },
+      },
+    );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown OCR error.";
     console.error("[OCR Route] Mistral API error:", message);
 
+    // Token already consumed — still report current remaining so UI stays honest
     return NextResponse.json(
-      { success: false, error: "API_ERROR", message },
-      { status: 500 }
+      {
+        success: false,
+        error: "API_ERROR",
+        message,
+        remaining,
+        reset,
+      },
+      {
+        status: 500,
+        headers: {
+          "X-RateLimit-Limit": String(limit),
+          "X-RateLimit-Remaining": String(remaining),
+          "X-RateLimit-Reset": String(reset),
+        },
+      },
     );
   }
 }

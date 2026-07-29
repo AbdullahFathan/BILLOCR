@@ -99,11 +99,12 @@ This progress tracker is the single source of truth for the implementation statu
 - [x] Buat `.env.local` template (`MISTRAL_API_KEY`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`) ✅ _Complete_
 - [x] Buat `src/lib/mistralOCR.ts` — helper wrapper Mistral SDK ✅ _Complete_
 - [x] Buat `src/app/api/ocr/route.ts` — Route Handler POST /api/ocr ✅ _Complete_
-- [x] Buat `middleware.ts` — Edge rate limit guard (Upstash Sliding Window 5/24h) ✅ _Complete_
+- [x] Buat `middleware.ts` — Edge rate limit guard (Upstash Sliding Window 5/24h) ✅ _Complete_ → **superseded** (consume moved to `POST /api/ocr`)
 - [x] Update `src/types/index.ts` — tambah `OCRResponse` dan `UploadStatus` types ✅ _Complete_
 - [x] Rewrite `OCRScanner.tsx` — hapus Tesseract worker, ganti fetch ke /api/ocr, indeterminate progress, rate limit UI ✅ _Complete_
 - [x] Update `FileUploader.tsx` — tambah `remainingUploads` prop + counter badge ✅ _Complete_
 - [x] Update `page.tsx` — hapus `isCompressing`, update signature `handleOCRCompleted`, pass `remainingUploads` ✅ _Complete_
+- [x] Fix quota counter — `limit()` + `getRemaining()` both in Node routes; remove Edge consume + hardcoded remaining fallback ✅ _Complete_
 - [x] Update `context/library-docs.md` ✅ _Complete_
 - [x] Update `context/architecture.md` ✅ _Complete_
 - [x] Update `src/app/globals.css` — tambah `@keyframes indeterminate` ✅ _Complete_

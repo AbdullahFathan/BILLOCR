@@ -29,20 +29,79 @@ import {
 } from "lucide-react";
 
 const RATE_LIMIT_KEY = "aura_split_rate_limit_reset";
+const QUOTA_KEY = "aura_split_scan_quota";
+const DAILY_SCAN_LIMIT = 5;
 
-/** Read persisted rate-limit reset time (client only). */
-function readStoredRateLimitReset(): number | null {
+type StoredQuota = {
+  remaining: number;
+  /** Unix ms when this cached quota should be treated as stale / reset. */
+  reset: number;
+};
+
+/** Persist remaining scan quota so a refresh does not flash back to 5/5. */
+function writeStoredQuota(remaining: number, resetMs: number): void {
+  if (typeof window === "undefined") return;
+  try {
+    const payload: StoredQuota = { remaining, reset: resetMs };
+    localStorage.setItem(QUOTA_KEY, JSON.stringify(payload));
+    if (remaining === 0) {
+      localStorage.setItem(RATE_LIMIT_KEY, String(resetMs));
+    } else {
+      localStorage.removeItem(RATE_LIMIT_KEY);
+    }
+  } catch (e) {
+    console.warn("Failed to save scan quota to localStorage:", e);
+  }
+}
+
+function clearStoredQuota(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(QUOTA_KEY);
+    localStorage.removeItem(RATE_LIMIT_KEY);
+  } catch (e) {
+    console.warn("Failed to clear scan quota from localStorage:", e);
+  }
+}
+
+/** Read persisted scan quota (client only). Expired → treat as full limit. */
+function readStoredQuota(): StoredQuota | null {
   if (typeof window === "undefined") return null;
   try {
+    const raw = localStorage.getItem(QUOTA_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as StoredQuota;
+      if (
+        typeof parsed.remaining === "number" &&
+        typeof parsed.reset === "number" &&
+        !isNaN(parsed.remaining) &&
+        !isNaN(parsed.reset)
+      ) {
+        if (Date.now() < parsed.reset) return parsed;
+        clearStoredQuota();
+        return { remaining: DAILY_SCAN_LIMIT, reset: 0 };
+      }
+    }
+
+    // Legacy: only the exhausted-block timestamp was stored
     const storedReset = localStorage.getItem(RATE_LIMIT_KEY);
     if (!storedReset) return null;
     const resetMs = parseInt(storedReset, 10);
-    if (!isNaN(resetMs) && Date.now() < resetMs) return resetMs;
-    localStorage.removeItem(RATE_LIMIT_KEY);
+    if (!isNaN(resetMs) && Date.now() < resetMs) {
+      return { remaining: 0, reset: resetMs };
+    }
+    clearStoredQuota();
   } catch (e) {
-    console.warn("Failed to read rate limit from localStorage:", e);
+    console.warn("Failed to read scan quota from localStorage:", e);
   }
   return null;
+}
+
+/** Normalize Upstash reset (ms) or RateLimit header seconds → ms. */
+function normalizeResetMs(raw: number | null | undefined): number {
+  if (raw == null || isNaN(raw)) return Date.now() + 86_400_000;
+  // Seconds timestamps are ~1e9; ms timestamps are ~1e12
+  return raw < 1e12 ? raw * 1000 : raw;
 }
 
 export default function Home() {
@@ -69,37 +128,76 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<NavTab>("scan");
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const [activeDinerName, setActiveDinerName] = useState<string | null>(null);
-  const [remainingUploads, setRemainingUploads] = useState<number>(() =>
-    readStoredRateLimitReset() !== null ? 0 : 5,
-  );
+  const [remainingUploads, setRemainingUploads] = useState<number>(() => {
+    const stored = readStoredQuota();
+    return stored ? stored.remaining : DAILY_SCAN_LIMIT;
+  });
   const [rateLimitResetTime, setRateLimitResetTime] = useState<number | null>(
-    () => readStoredRateLimitReset(),
+    () => {
+      const stored = readStoredQuota();
+      return stored && stored.remaining === 0 ? stored.reset : null;
+    },
   );
   const [parseError, setParseError] = useState(false);
   const [rateLimitSynced, setRateLimitSynced] = useState(false);
 
-  // Restore rate limit from localStorage after hydration (render-time state adjust).
+  // Restore rate limit / quota from localStorage after hydration (render-time state adjust).
   if (hasHydrated && !rateLimitSynced) {
     setRateLimitSynced(true);
-    const resetMs = readStoredRateLimitReset();
-    if (resetMs !== null) {
-      setRemainingUploads(0);
-      setRateLimitResetTime(resetMs);
+    const stored = readStoredQuota();
+    if (stored) {
+      setRemainingUploads(stored.remaining);
+      setRateLimitResetTime(stored.remaining === 0 ? stored.reset : null);
     }
   }
+
+  /* ── Sync remaining quota from Redis (does not consume a scan) ── */
+  useEffect(() => {
+    if (!hasHydrated) return;
+    let cancelled = false;
+
+    async function syncQuota() {
+      try {
+        const res = await fetch("/api/ocr/quota");
+        if (!res.ok) return;
+        const json = (await res.json()) as {
+          success?: boolean;
+          data?: { remainingUploads?: number; reset?: number };
+        };
+        if (cancelled || !json.success || !json.data) return;
+
+        const remaining =
+          typeof json.data.remainingUploads === "number"
+            ? json.data.remainingUploads
+            : DAILY_SCAN_LIMIT;
+        const resetMs = normalizeResetMs(json.data.reset);
+
+        setRemainingUploads(remaining);
+        if (remaining === 0) {
+          setRateLimitResetTime(resetMs);
+        } else {
+          setRateLimitResetTime(null);
+        }
+        writeStoredQuota(remaining, resetMs);
+      } catch (e) {
+        console.warn("Failed to sync scan quota:", e);
+      }
+    }
+
+    syncQuota();
+    return () => {
+      cancelled = true;
+    };
+  }, [hasHydrated]);
 
   /* ── Auto-clear rate limit state when countdown expires ───────── */
   useEffect(() => {
     if (!rateLimitResetTime) return;
     const checkExpiry = () => {
       if (Date.now() >= rateLimitResetTime) {
-        setRemainingUploads(5);
+        setRemainingUploads(DAILY_SCAN_LIMIT);
         setRateLimitResetTime(null);
-        try {
-          localStorage.removeItem(RATE_LIMIT_KEY);
-        } catch (e) {
-          console.warn("Failed to clear rate limit from localStorage:", e);
-        }
+        clearStoredQuota();
       }
     };
     checkExpiry();
@@ -114,17 +212,21 @@ export default function Home() {
     setIsScanning(true);
   };
 
-  const handleOCRCompleted = (text: string, remaining: number) => {
+  const handleOCRCompleted = (
+    text: string,
+    remaining: number,
+    resetMs?: number,
+  ) => {
     setIsScanning(false);
     setSelectedFile(null);
     setRemainingUploads(remaining);
-    // Clear any previous rate limit state on success
-    setRateLimitResetTime(null);
-    try {
-      localStorage.removeItem(RATE_LIMIT_KEY);
-    } catch (e) {
-      console.warn("Failed to remove rate limit from localStorage:", e);
+    const normalizedReset = normalizeResetMs(resetMs);
+    if (remaining === 0) {
+      setRateLimitResetTime(normalizedReset);
+    } else {
+      setRateLimitResetTime(null);
     }
+    writeStoredQuota(remaining, normalizedReset);
     const parsed = parseReceipt(text);
     setItems(parsed.items);
     setTax(parsed.tax);
@@ -141,11 +243,7 @@ export default function Home() {
   const handleRateLimited = (resetTimeMs: number) => {
     setRemainingUploads(0);
     setRateLimitResetTime(resetTimeMs);
-    try {
-      localStorage.setItem(RATE_LIMIT_KEY, String(resetTimeMs));
-    } catch (e) {
-      console.warn("Failed to save rate limit to localStorage:", e);
-    }
+    writeStoredQuota(0, resetTimeMs);
   };
 
   const handleCancel = () => {
@@ -155,13 +253,9 @@ export default function Home() {
     setActiveTab("scan");
     // If the rate limit has already reset, clear the block
     if (rateLimitResetTime && Date.now() >= rateLimitResetTime) {
-      setRemainingUploads(5);
+      setRemainingUploads(DAILY_SCAN_LIMIT);
       setRateLimitResetTime(null);
-      try {
-        localStorage.removeItem(RATE_LIMIT_KEY);
-      } catch (e) {
-        console.warn("Failed to remove rate limit from localStorage:", e);
-      }
+      clearStoredQuota();
     }
   };
 

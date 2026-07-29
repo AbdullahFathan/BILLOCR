@@ -16,10 +16,28 @@ import type { OCRResponse, UploadStatus } from "@/types";
 
 interface OCRScannerProps {
   imageBlob: Blob;
-  onCompleted: (rawText: string, remainingUploads: number) => void;
+  onCompleted: (
+    rawText: string,
+    remainingUploads: number,
+    resetMs?: number,
+  ) => void;
   onCancel: () => void;
   /** Called when the API returns 429 — parent should set remainingUploads=0 */
   onRateLimited?: (resetTimeMs: number) => void;
+}
+
+/** Upstash reset is ms; some RateLimit headers use seconds. */
+function normalizeResetMs(raw: number | null | undefined, header?: string | null): number {
+  if (header) {
+    const parsed = parseInt(header, 10);
+    if (!isNaN(parsed)) {
+      return parsed < 1e12 ? parsed * 1000 : parsed;
+    }
+  }
+  if (raw != null && !isNaN(raw)) {
+    return raw < 1e12 ? raw * 1000 : raw;
+  }
+  return Date.now() + 86_400_000;
 }
 
 /* ─── Scanning step labels (indeterminate — no % from Mistral) ──── */
@@ -127,7 +145,7 @@ export default function OCRScanner({
           reader.readAsDataURL(compressed);
         });
 
-        // 3. POST to /api/ocr (rate-limited by middleware)
+        // 3. POST to /api/ocr (rate-limited in the Route Handler)
         const res = await fetch("/api/ocr", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -140,10 +158,17 @@ export default function OCRScanner({
         // 4. Handle 429 rate limit BEFORE parsing JSON
         //    (guards against plain-text body that would crash res.json())
         if (res.status === 429) {
-          const resetHeader = res.headers.get("X-RateLimit-Reset");
-          const resetMs = resetHeader
-            ? parseInt(resetHeader) * 1000
-            : Date.now() + 86_400_000;
+          let bodyReset: number | undefined;
+          try {
+            const body = (await res.clone().json()) as { reset?: number };
+            bodyReset = body.reset;
+          } catch {
+            // plain-text 429 body — fall back to header
+          }
+          const resetMs = normalizeResetMs(
+            bodyReset,
+            res.headers.get("X-RateLimit-Reset"),
+          );
           setStatus("rate_limited");
           setResetTime(resetMs);
           // Notify parent so it can block the FileUploader immediately
@@ -155,7 +180,7 @@ export default function OCRScanner({
 
         // 5. Handle other API-level errors reported in body
         if (json.success === false && json.error === "RATE_LIMIT_EXCEEDED") {
-          const resetMs = json.reset ?? Date.now() + 86_400_000;
+          const resetMs = normalizeResetMs(json.reset);
           setStatus("rate_limited");
           setResetTime(resetMs);
           // Notify parent so it can block the FileUploader immediately
@@ -170,9 +195,13 @@ export default function OCRScanner({
 
         // 7. Success path
         setStatus("done");
-        const { text, remainingUploads } = json.data;
+        const { text, remainingUploads, reset } = json.data;
+        const resetMs = normalizeResetMs(
+          reset,
+          res.headers.get("X-RateLimit-Reset"),
+        );
         setRawText(text);
-        onCompleted(text, remainingUploads);
+        onCompleted(text, remainingUploads, resetMs);
       } catch (err: unknown) {
         const msg =
           err instanceof Error
@@ -212,9 +241,6 @@ export default function OCRScanner({
           <h2 className="text-lg font-bold font-heading text-foreground leading-tight">
             Scanning Receipt
           </h2>
-          <p className="text-xs text-muted mt-0.5 truncate">
-            Powered by Cloud OCR · High Accuracy
-          </p>
         </div>
         <button
           onClick={onCancel}

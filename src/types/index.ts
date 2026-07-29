@@ -37,8 +37,14 @@ export interface ReceiptState {
  * On failure, includes an error code and optional reset timestamp.
  */
 export type OCRResponse =
-  | { success: true;  data: { text: string; remainingUploads: number } }
-  | { success: false; error: string; message?: string; reset?: number };
+  | { success: true; data: { text: string; remainingUploads: number; reset: number } }
+  | {
+      success: false;
+      error: string;
+      message?: string;
+      reset?: number;
+      remaining?: number;
+    };
 
 /**
  * UI state machine for the upload → OCR flow.

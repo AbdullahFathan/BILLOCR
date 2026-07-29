@@ -6,7 +6,7 @@ This registry catalogs the UI components built for the Split Bill OCR applicatio
 
 | Component Name | Description | Path | Status |
 | :--- | :--- | :--- | :--- |
-| **`FileUploader`** | Upload area for drag-and-drop or camera capture of receipt. | `src/components/custom/FileUploader.tsx` | ✅ Complete |
+| **`FileUploader`** | Upload area for drag-and-drop or camera capture of receipt. Shows `remainingUploads/5` badge (restored from localStorage + `GET /api/ocr/quota` after refresh). | `src/components/custom/FileUploader.tsx` | ✅ Complete |
 | **`OCRScanner`** | Scanning feedback component with progress bar and animated scan beam. | `src/components/custom/OCRScanner.tsx` | ✅ Complete |
 | **`DinerSelector`** | Controls to add, edit, or select participants (diners). | `src/components/custom/DinerSelector.tsx` | ✅ Complete |
 | **`ReceiptItemRow`** | Individual receipt item card displaying pricing, qty, and allocation controls. | `src/components/custom/ReceiptItemRow.tsx` | ✅ Complete |
