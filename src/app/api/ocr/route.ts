@@ -67,14 +67,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Match client 10 MB file cap (base64 is ~4/3 of binary size)
-    const MAX_BASE64_LENGTH = Math.ceil(10 * 1024 * 1024 * (4 / 3));
+    // Soft safety cap after client compression (~2 MB binary; base64 is ~4/3)
+    const MAX_BASE64_LENGTH = Math.ceil(2 * 1024 * 1024 * (4 / 3));
     if (imageBase64.length > MAX_BASE64_LENGTH) {
       return NextResponse.json(
         {
           success: false,
           error: "INVALID_BODY",
-          message: "Ukuran gambar terlalu besar. Maksimal 10 MB.",
+          message:
+            "Payload OCR terlalu besar. Kompresi gagal atau dilewati — maksimal ~2 MB.",
         },
         { status: 400 },
       );

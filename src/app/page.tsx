@@ -380,7 +380,7 @@ export default function Home() {
                 </div>
 
                 <h1 className="text-3xl font-bold font-heading text-foreground tracking-tight">
-                  BagiBill
+                  Bagi Bill
                 </h1>
                 <p className="text-sm text-muted max-w-60uto leading-relaxed">
                   Scan your receipt & split the bill fairly — all in your

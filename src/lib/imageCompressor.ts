@@ -1,8 +1,18 @@
+/** Max original file size accepted by the uploader (binary). */
+export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
 /** Maximum width/height (px) before the image gets downscaled. */
 const MAX_IMAGE_DIMENSION = 1600;
 
-/** JPEG quality factor: 0 (worst) – 1 (best). 0.75 = good balance of quality vs. size. */
-const JPEG_QUALITY = 0.75;
+/** JPEG quality factor: 0 (worst) – 1 (best). */
+const JPEG_QUALITY = 0.72;
+
+/** Fallback resize when the first pass still exceeds the soft threshold. */
+const FALLBACK_DIMENSION = 1200;
+const FALLBACK_QUALITY = 0.6;
+
+/** Soft threshold that triggers a single more-aggressive compression pass. */
+const OCR_FALLBACK_THRESHOLD_BYTES = 1 * 1024 * 1024;
 
 /**
  * Compresses an image file using the Canvas API.
@@ -81,4 +91,29 @@ export function compressImage(
       reject(new Error('Failed to read file.'));
     };
   });
+}
+
+/**
+ * Compresses a receipt image for Mistral OCR:
+ * 1) 1600px / quality 0.72
+ * 2) If still > 1 MB, one fallback pass at 1200px / quality 0.6
+ */
+export async function compressForOcr(file: File): Promise<Blob> {
+  const firstPass = await compressImage(
+    file,
+    MAX_IMAGE_DIMENSION,
+    MAX_IMAGE_DIMENSION,
+    JPEG_QUALITY
+  );
+
+  if (firstPass.size <= OCR_FALLBACK_THRESHOLD_BYTES) {
+    return firstPass;
+  }
+
+  return compressImage(
+    new File([firstPass], "receipt.jpg", { type: "image/jpeg" }),
+    FALLBACK_DIMENSION,
+    FALLBACK_DIMENSION,
+    FALLBACK_QUALITY
+  );
 }
