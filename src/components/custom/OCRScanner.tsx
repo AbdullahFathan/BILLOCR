@@ -11,7 +11,7 @@ import {
   Clock,
 } from "lucide-react";
 import { useReceiptStore } from "@/hooks/useReceiptStore";
-import { compressImage } from "@/lib/imageCompressor";
+import { compressForOcr } from "@/lib/imageCompressor";
 import type { OCRResponse, UploadStatus } from "@/types";
 
 interface OCRScannerProps {
@@ -128,14 +128,10 @@ export default function OCRScanner({
 
     async function runOCR() {
       try {
-        // 1. Compress image (Canvas API — already a Blob here, compress again
-        //    only if it came directly from camera without prior compression)
-        const compressed =
-          imageBlob.size > 500_000
-            ? await compressImage(
-                new File([imageBlob], "receipt.jpg", { type: imageBlob.type }),
-              )
-            : imageBlob;
+        // 1. Always compress for OCR (1600px/q0.72, fallback 1200px/q0.6 if > 1 MB)
+        const compressed = await compressForOcr(
+          new File([imageBlob], "receipt.jpg", { type: imageBlob.type }),
+        );
 
         setStatus("scanning");
 

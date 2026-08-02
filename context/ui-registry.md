@@ -6,8 +6,8 @@ This registry catalogs the UI components built for the BagiBill application, tra
 
 | Component Name | Description | Path | Status |
 | :--- | :--- | :--- | :--- |
-| **`FileUploader`** | Upload area for drag-and-drop or camera capture of receipt. Shows `remainingUploads/5` badge (restored from localStorage + `GET /api/ocr/quota` after refresh). | `src/components/custom/FileUploader.tsx` | ✅ Complete |
-| **`OCRScanner`** | Scanning feedback with progress bar and scan beam. Propagates `remaining`/`reset` on success, 429, and `API_ERROR` (token already consumed). | `src/components/custom/OCRScanner.tsx` | ✅ Complete |
+| **`FileUploader`** | Upload area for drag-and-drop or camera capture of receipt (max **10 MB**). Shows `remainingUploads/5` badge (restored from localStorage + `GET /api/ocr/quota` after refresh). | `src/components/custom/FileUploader.tsx` | ✅ Complete |
+| **`OCRScanner`** | Scanning feedback with progress bar and scan beam. Always compresses via `compressForOcr` (1600px/q0.72, fallback 1200px/q0.6 if > 1 MB) before Mistral. Propagates `remaining`/`reset` on success, 429, and `API_ERROR` (token already consumed). | `src/components/custom/OCRScanner.tsx` | ✅ Complete |
 | **`DinerSelector`** | Controls to add, edit, or select participants (diners). | `src/components/custom/DinerSelector.tsx` | ✅ Complete |
 | **`ReceiptItemRow`** | Individual receipt item card displaying pricing, qty, and allocation controls. | `src/components/custom/ReceiptItemRow.tsx` | ✅ Complete |
 | **`BillSummaryCard`** | Display card showing subtotal, taxes, service charges, and individual breakdown. | `src/components/custom/BillSummaryCard.tsx` | ✅ Complete |

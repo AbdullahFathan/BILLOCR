@@ -4,6 +4,7 @@ import React, { useRef, useState } from "react";
 import { Camera, Upload, ScanLine, Cloud } from "lucide-react";
 import { useReceiptStore } from "@/hooks/useReceiptStore";
 import AlertModal from "@/components/custom/AlertModal";
+import { MAX_UPLOAD_BYTES } from "@/lib/imageCompressor";
 
 interface FileUploaderProps {
   onFileSelected: (file: File) => void;
@@ -21,15 +22,12 @@ export default function FileUploader({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const resetStore = useReceiptStore((state) => state.resetStore);
 
-  // Batas ukuran file: 10 MB
-  const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > MAX_FILE_SIZE_BYTES) {
+    if (file.size > MAX_UPLOAD_BYTES) {
       setErrorMessage(
-        `Ukuran file terlalu besar (${(file.size / 1024 / 1024).toFixed(1)} MB). Maksimum 5 MB.`,
+        `Ukuran file terlalu besar (${(file.size / 1024 / 1024).toFixed(1)} MB). Maksimum 10 MB.`,
       );
       // Reset input agar file yang sama bisa dipilih ulang setelah error
       e.target.value = "";
@@ -52,9 +50,9 @@ export default function FileUploader({
     setIsDragActive(false);
     const file = e.dataTransfer.files?.[0];
     if (!file?.type.startsWith("image/")) return;
-    if (file.size > MAX_FILE_SIZE_BYTES) {
+    if (file.size > MAX_UPLOAD_BYTES) {
       setErrorMessage(
-        `Ukuran file terlalu besar (${(file.size / 1024 / 1024).toFixed(1)} MB). Maksimum 5 MB.`,
+        `Ukuran file terlalu besar (${(file.size / 1024 / 1024).toFixed(1)} MB). Maksimum 10 MB.`,
       );
       return;
     }

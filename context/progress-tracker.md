@@ -106,6 +106,7 @@ This progress tracker is the single source of truth for the implementation statu
 - [x] Update `page.tsx` — hapus `isCompressing`, update signature `handleOCRCompleted`, pass `remainingUploads` ✅ _Complete_
 - [x] Fix quota counter — `limit()` + `getRemaining()` both in Node routes; remove Edge consume + hardcoded remaining fallback ✅ _Complete_
 - [x] Fix quota sync races — `quotaEpoch` + ignore stale peek; apply `remaining` on `API_ERROR`; re-peek on scan end / reset expiry; reject oversized base64 before `limit()` ✅ _Complete_
+- [x] Upload 10 MB + OCR compress — accept 10 MB in `FileUploader` (fixed error copy); always `compressForOcr` (1600/0.72, one fallback 1200/0.6 if > 1 MB); API soft cap ~2 MB binary ✅ _Complete_
 - [x] Update `context/library-docs.md` ✅ _Complete_
 - [x] Update `context/architecture.md` ✅ _Complete_
 - [x] Update `src/app/globals.css` — tambah `@keyframes indeterminate` ✅ _Complete_
