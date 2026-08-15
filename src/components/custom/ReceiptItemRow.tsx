@@ -16,7 +16,6 @@ interface ReceiptItemRowProps {
   assignments: Record<string, number>; // dinerName -> quantity
   onAssign: (itemId: string, dinerName: string, qty: number) => void;
   diners: string[];
-  activeDinerName: string | null;
   isExpanded: boolean;
   onToggleExpand: () => void;
 }
@@ -26,7 +25,6 @@ export default function ReceiptItemRow({
   assignments,
   onAssign,
   diners,
-  activeDinerName,
   isExpanded,
   onToggleExpand,
 }: ReceiptItemRowProps) {
@@ -305,27 +303,6 @@ export default function ReceiptItemRow({
                 ))}
               </div>
             </div>
-          )}
-
-          {/* Active diner fast-assign CTA */}
-          {activeDinerName && !isFullyAllocated && (
-            <button
-              type="button"
-              onClick={() => {
-                if (activeDinerName in assignments) {
-                  handleIncrement(activeDinerName);
-                } else {
-                  handleQuickAssign(activeDinerName);
-                }
-              }}
-              className="w-full py-2.5 bg-primary/10 border border-dashed border-primary/40 rounded-xl hover:bg-primary/20 text-primary text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-98"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Tugaskan ke{" "}
-              <span className="underline underline-offset-2">
-                {activeDinerName}
-              </span>
-            </button>
           )}
         </div>
       )}

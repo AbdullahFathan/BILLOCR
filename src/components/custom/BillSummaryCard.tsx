@@ -12,7 +12,6 @@ interface BillSummaryCardProps {
   assignments: Record<string, Record<string, number>>; // itemId -> dinerName -> quantity
   tax: number;
   serviceCharge: number;
-  activeDinerName?: string | null;
 }
 
 export default function BillSummaryCard({
@@ -21,7 +20,6 @@ export default function BillSummaryCard({
   assignments,
   tax,
   serviceCharge,
-  activeDinerName,
 }: BillSummaryCardProps) {
   const [expandedDiner, setExpandedDiner] = useState<string | null>(null);
 
@@ -54,11 +52,7 @@ export default function BillSummaryCard({
     overallSubtotal - totalAllocatedSubtotal,
   );
 
-  /* Determine active diner breakdown to feature */
-  const featuredDiner =
-    dinerBreakdowns.find((d) => d.name === activeDinerName) ??
-    dinerBreakdowns[0] ??
-    null;
+  const featuredDiner = dinerBreakdowns[0] ?? null;
   const otherDiners = dinerBreakdowns.filter(
     (d) => d.name !== featuredDiner?.name,
   );

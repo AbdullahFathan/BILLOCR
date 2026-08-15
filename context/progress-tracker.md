@@ -120,3 +120,10 @@ This progress tracker is the single source of truth for the implementation statu
 
 - [x] Terjemahkan seluruh teks UI (page, layout metadata, komponen custom, pesan error OCR) ke bahasa Indonesia; `html lang="id"` ✅ _Complete_
 - [x] Favicon memakai `public/icon.svg` via metadata `icons` di `layout.tsx` ✅ _Complete_
+
+### Milestone 9: Assign UX Cleanup
+
+- [x] Hapus fitur **bagi cepat aktif** (pilih diner lalu `+ Tugaskan ke [nama]`) ✅ _Complete_
+  - `DinerSelector` hanya daftar + tambah/hapus orang
+  - `ReceiptItemRow` tetap pakai chip **Tambah Cepat** per nama; CTA `Tugaskan ke` dihapus
+  - State `activeDinerName` di `page.tsx` dihapus

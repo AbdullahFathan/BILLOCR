@@ -8,7 +8,7 @@ This registry catalogs the UI components built for the BagiBill application, tra
 | :--- | :--- | :--- | :--- |
 | **`FileUploader`** | Upload area for drag-and-drop or camera capture of receipt (max **10 MB**). Shows `remainingUploads/5` badge (restored from localStorage + `GET /api/ocr/quota` after refresh). | `src/components/custom/FileUploader.tsx` | ✅ Complete |
 | **`OCRScanner`** | Scanning feedback with progress bar and scan beam. Always compresses via `compressForOcr` (1600px/q0.72, fallback 1200px/q0.6 if > 1 MB) before Mistral. Propagates `remaining`/`reset` on success, 429, and `API_ERROR` (token already consumed). | `src/components/custom/OCRScanner.tsx` | ✅ Complete |
-| **`DinerSelector`** | Controls to add, edit, or select participants (diners). | `src/components/custom/DinerSelector.tsx` | ✅ Complete |
+| **`DinerSelector`** | Controls to add or remove participants (diners). | `src/components/custom/DinerSelector.tsx` | ✅ Complete |
 | **`ReceiptItemRow`** | Individual receipt item card displaying pricing, qty, and allocation controls. | `src/components/custom/ReceiptItemRow.tsx` | ✅ Complete |
 | **`BillSummaryCard`** | Display card showing subtotal, taxes, service charges, and individual breakdown. | `src/components/custom/BillSummaryCard.tsx` | ✅ Complete |
 | **`BottomNav`** | Bottom navigation bar with 3 tabs (Scan/Assign/Settle) + progress stepper. | `src/components/custom/BottomNav.tsx` | ✅ Complete (M5.0) |
@@ -24,8 +24,8 @@ This registry catalogs the UI components built for the BagiBill application, tra
 - **Design Constraint**: Must display avatar chips representing allocated diners. Hovering over a chip should highlight that diner's share.
 
 ### 2. `DinerSelector` (Diner Management)
-- **Props**: Receives diner names list and callback handlers to add/remove diners.
-- **Styling**: Utilizes pill badges with exit cross buttons. Glow outline is added to the active diner currently selected for fast-assign modes.
+- **Props**: None — reads diner list and add/remove actions from the receipt store.
+- **Styling**: Utilizes pill badges with exit cross buttons. Assignment is done per item via `ReceiptItemRow` quick-add chips.
 
 ### 3. `ShareReportButton`
 - **Props**: Receives final calculated list of diners, subtotals, tax fractions, and receipt name.
@@ -141,7 +141,6 @@ Last updated: 2026-07-12
 | Qty counter display | `tabular-nums font-bold font-heading text-foreground` |
 | Progress tracker row | `bg-surface border border-border/40 rounded-xl px-3 py-2.5` |
 | Quick-add chip | `bg-secondary border border-border rounded-full hover:border-primary/50 hover:text-primary` |
-| Active diner CTA | `bg-primary/10 border-dashed border-primary/40 rounded-xl text-primary hover:bg-primary/20` |
 
 **Pattern notes:**
 - Three distinct states: unallocated (default border), partially allocated (warning tint + pulse badge), fully allocated (success badge).
@@ -163,17 +162,14 @@ Last updated: 2026-07-12
 | Property | Class |
 | --- | --- |
 | Container | `space-y-4` |
-| Diner pill (active) | `bg-primary/15 border border-primary text-primary shadow-[0_0_0_1px_theme(colors.primary)] shadow-primary/20` |
-| Diner pill (inactive) | `bg-secondary border border-border text-foreground hover:border-primary/40 hover:bg-secondary/80` |
-| Avatar circle (active) | `bg-primary text-primary-foreground` |
-| Avatar circle (inactive) | `bg-surface-high border border-border text-foreground` |
+| Diner pill | `bg-secondary border border-border text-foreground` |
+| Avatar circle | `bg-surface-high border border-border text-foreground` |
 | Tambah Orang button | `border border-dashed border-primary/40 text-primary/70 hover:border-primary hover:text-primary hover:bg-primary/5` |
 | Add form input | `bg-input border border-border/60 focus:border-primary/60 text-foreground rounded-xl` |
 | Add form button | `bg-primary hover:bg-primary-hover text-primary-foreground rounded-xl` |
 
 **Pattern notes:**
 - Avatar circles inside pills show initials in uppercase (up to 2 chars).
-- Active diner pill uses standard border-primary active glow.
 - Dash button `+ Tambah Orang` allows dynamic addition inline.
 - Removed old flex gap input and standardized on compact form layout with close X button.
 
@@ -197,7 +193,7 @@ Last updated: 2026-07-12
 | Action button | `bg-primary hover:bg-primary-hover text-primary-foreground rounded-xl shadow-md` |
 
 **Pattern notes:**
-- Features the currently selected active diner in a prominent way (large display header with detailed breakdown in drawer).
+- Features the first diner in a prominent way (large display header with detailed breakdown in drawer).
 - Displays other diner totals in a clean list format underneath.
 - Integrated the Salin Rekap copy CTA button directly inside the card for contextual priority.
 - Uses `tabular-nums` for alignment stability during share calculations.

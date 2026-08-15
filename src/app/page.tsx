@@ -131,7 +131,6 @@ export default function Home() {
   const [isScanning, setIsScanning] = useState(false);
   const [activeTab, setActiveTab] = useState<NavTab>("scan");
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
-  const [activeDinerName, setActiveDinerName] = useState<string | null>(null);
   const [remainingUploads, setRemainingUploads] = useState<number>(() => {
     const stored = readStoredQuota();
     return stored ? stored.remaining : DAILY_SCAN_LIMIT;
@@ -620,7 +619,7 @@ export default function Home() {
                       Bagi ke Siapa?
                     </h2>
                     <p className="text-[11px] text-muted">
-                      Ketuk nama untuk bagi cepat ke item
+                      Tambah orang, lalu bagi item di daftar pesanan
                     </p>
                   </div>
                   {/* Diner count badge */}
@@ -631,10 +630,7 @@ export default function Home() {
                   )}
                 </div>
                 <div className="p-5">
-                  <DinerSelector
-                    activeDinerName={activeDinerName}
-                    setActiveDinerName={setActiveDinerName}
-                  />
+                  <DinerSelector />
                 </div>
               </div>
 
@@ -657,7 +653,6 @@ export default function Home() {
                       assignments={assignments[item.id] || {}}
                       onAssign={assignItem}
                       diners={diners}
-                      activeDinerName={activeDinerName}
                       isExpanded={expandedItemId === item.id}
                       onToggleExpand={() =>
                         setExpandedItemId(
@@ -676,7 +671,6 @@ export default function Home() {
                 assignments={assignments}
                 tax={tax}
                 serviceCharge={serviceCharge}
-                activeDinerName={activeDinerName}
               />
 
               {/* Footer actions */}
