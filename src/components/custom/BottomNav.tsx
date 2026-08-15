@@ -12,9 +12,9 @@ interface BottomNavProps {
 }
 
 const tabs: { id: NavTab; label: string; Icon: React.ElementType }[] = [
-  { id: "scan",   label: "Scan",   Icon: ScanLine },
-  { id: "assign", label: "Assign", Icon: Users    },
-  { id: "settle", label: "Settle", Icon: Receipt  },
+  { id: "scan",   label: "Pindai", Icon: ScanLine },
+  { id: "assign", label: "Bagi",   Icon: Users    },
+  { id: "settle", label: "Rekap",  Icon: Receipt  },
 ];
 
 export default function BottomNav({
@@ -27,7 +27,7 @@ export default function BottomNav({
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-50"
-      aria-label="Main navigation"
+      aria-label="Navigasi utama"
     >
       {/* ── Progress stepper bar (4px, fills with golden orange) ── */}
       <div

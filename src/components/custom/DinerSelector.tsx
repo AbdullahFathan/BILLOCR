@@ -162,13 +162,13 @@ export default function DinerSelector({
           <p className="text-[11px] text-muted">
             {activeDinerName ? (
               <>
-                Fast-assign aktif:{" "}
+                Bagi cepat aktif:{" "}
                 <span className="text-primary font-semibold">
                   {activeDinerName}
                 </span>
               </>
             ) : (
-              "Ketuk nama untuk pilih fast-assign"
+              "Ketuk nama untuk pilih bagi cepat"
             )}
           </p>
           {activeDinerName && (
@@ -176,9 +176,9 @@ export default function DinerSelector({
               type="button"
               onClick={() => setActiveDinerName(null)}
               className="text-[10px] text-muted hover:text-primary transition-colors cursor-pointer"
-              aria-label="Hapus pilihan fast-assign aktif"
+              aria-label="Hapus pilihan bagi cepat aktif"
             >
-              Clear
+              Batal
             </button>
           )}
         </div>

@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: "INVALID_BODY",
-          message: "imageBase64 is required.",
+          message: "Data gambar wajib diisi.",
         },
         { status: 400 },
       );
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: "INVALID_BODY",
-          message: "mimeType is required.",
+          message: "Tipe file wajib diisi.",
         },
         { status: 400 },
       );
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         error: "INVALID_BODY",
-        message: "Invalid JSON body.",
+        message: "Data permintaan tidak valid.",
       },
       { status: 400 },
     );
@@ -136,15 +136,16 @@ export async function POST(request: NextRequest) {
       },
     );
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Unknown OCR error.";
-    console.error("[OCR Route] Mistral API error:", message);
+    const original =
+      err instanceof Error ? err.message : "Gagal membaca struk. Silakan coba lagi.";
+    console.error("[OCR Route] Mistral API error:", original);
 
     // Token already consumed — still report current remaining so UI stays honest
     return NextResponse.json(
       {
         success: false,
         error: "API_ERROR",
-        message,
+        message: "Gagal membaca struk. Silakan coba lagi.",
         remaining,
         reset,
       },
