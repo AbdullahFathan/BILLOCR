@@ -28,7 +28,7 @@ export function compressImage(
   return new Promise((resolve, reject) => {
     // Check if window and FileReader are available (client-side only)
     if (typeof window === 'undefined' || !window.FileReader) {
-      reject(new Error('FileReader is only available in browser environments.'));
+      reject(new Error('Pembaca file hanya tersedia di browser.'));
       return;
     }
 
@@ -61,7 +61,7 @@ export function compressImage(
 
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-          reject(new Error('Could not get 2D context from canvas.'));
+          reject(new Error('Gagal memproses gambar.'));
           return;
         }
 
@@ -74,7 +74,7 @@ export function compressImage(
             if (blob) {
               resolve(blob);
             } else {
-              reject(new Error('Canvas compression failed.'));
+              reject(new Error('Gagal mengompres gambar.'));
             }
           },
           'image/jpeg',
@@ -83,12 +83,12 @@ export function compressImage(
       };
 
       img.onerror = () => {
-        reject(new Error('Failed to load image element.'));
+        reject(new Error('Gagal memuat gambar.'));
       };
     };
 
     reader.onerror = () => {
-      reject(new Error('Failed to read file.'));
+      reject(new Error('Gagal membaca file.'));
     };
   });
 }

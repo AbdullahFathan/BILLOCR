@@ -4,15 +4,7 @@ import React, { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { useReceiptStore } from "@/hooks/useReceiptStore";
 
-interface DinerSelectorProps {
-  activeDinerName: string | null;
-  setActiveDinerName: (name: string | null) => void;
-}
-
-export default function DinerSelector({
-  activeDinerName,
-  setActiveDinerName,
-}: DinerSelectorProps) {
+export default function DinerSelector() {
   const [nameInput, setNameInput] = useState("");
   const [showInput, setShowInput] = useState(false);
   const { diners, addDiner, removeDiner } = useReceiptStore();
@@ -33,69 +25,36 @@ export default function DinerSelector({
     addDiner(trimmed);
     setNameInput("");
     setShowInput(false);
-
-    // Auto-select the first diner if none is active
-    if (!activeDinerName) {
-      setActiveDinerName(trimmed);
-    }
-  };
-
-  const handleRemoveDiner = (name: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    removeDiner(name);
-
-    if (activeDinerName === name) {
-      const remaining = diners.filter((d) => d !== name);
-      setActiveDinerName(remaining.length > 0 ? remaining[0] : null);
-    }
-  };
-
-  const handleSelectDiner = (name: string) => {
-    setActiveDinerName(activeDinerName === name ? null : name);
   };
 
   return (
     <div className="space-y-4">
       {/* Pill row */}
       <div className="flex flex-wrap gap-2.5 items-center">
-        {diners.map((name) => {
-          const isActive = activeDinerName === name;
-          return (
-            <div
-              key={name}
-              onClick={() => handleSelectDiner(name)}
-              className={`group relative flex items-center gap-2 pl-1 pr-3 py-1 rounded-full cursor-pointer select-none transition-all duration-200 active:scale-95 ${
-                isActive
-                  ? "bg-primary/15 border border-primary text-primary shadow-[0_0_0_1px_var(--color-primary)] shadow-primary/20"
-                  : "bg-secondary border border-border text-foreground hover:border-primary/40 hover:bg-secondary/80"
-              }`}
-            >
-              {/* Avatar circle */}
-              <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 transition-colors ${
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-surface-high border border-border text-foreground"
-                }`}
-              >
-                {getInitials(name)}
-              </div>
-
-              {/* Name */}
-              <span className="text-xs font-semibold leading-none">{name}</span>
-
-              {/* Remove button */}
-              <button
-                type="button"
-                onClick={(e) => handleRemoveDiner(name, e)}
-                className="ml-0.5 -mr-1 p-0.5 rounded-full text-foreground/30 hover:text-destructive hover:bg-destructive/10 transition-all cursor-pointer opacity-0 group-hover:opacity-100"
-                aria-label={`Hapus ${name} dari daftar`}
-              >
-                <X className="w-3 h-3" />
-              </button>
+        {diners.map((name) => (
+          <div
+            key={name}
+            className="group relative flex items-center gap-2 pl-1 pr-3 py-1 rounded-full select-none bg-secondary border border-border text-foreground"
+          >
+            {/* Avatar circle */}
+            <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 bg-surface-high border border-border text-foreground">
+              {getInitials(name)}
             </div>
-          );
-        })}
+
+            {/* Name */}
+            <span className="text-xs font-semibold leading-none">{name}</span>
+
+            {/* Remove button */}
+            <button
+              type="button"
+              onClick={() => removeDiner(name)}
+              className="ml-0.5 -mr-1 p-0.5 rounded-full text-foreground/30 hover:text-destructive hover:bg-destructive/10 transition-all cursor-pointer opacity-0 group-hover:opacity-100"
+              aria-label={`Hapus ${name} dari daftar`}
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        ))}
 
         {/* + Tambah Orang dashed chip */}
         {!showInput && (
@@ -154,34 +113,6 @@ export default function DinerSelector({
           <span className="text-primary font-semibold">+ Tambah Orang</span>{" "}
           untuk mulai split!
         </p>
-      )}
-
-      {/* Active diner hint */}
-      {diners.length > 0 && (
-        <div className="flex items-center justify-between">
-          <p className="text-[11px] text-muted">
-            {activeDinerName ? (
-              <>
-                Fast-assign aktif:{" "}
-                <span className="text-primary font-semibold">
-                  {activeDinerName}
-                </span>
-              </>
-            ) : (
-              "Ketuk nama untuk pilih fast-assign"
-            )}
-          </p>
-          {activeDinerName && (
-            <button
-              type="button"
-              onClick={() => setActiveDinerName(null)}
-              className="text-[10px] text-muted hover:text-primary transition-colors cursor-pointer"
-              aria-label="Hapus pilihan fast-assign aktif"
-            >
-              Clear
-            </button>
-          )}
-        </div>
       )}
     </div>
   );

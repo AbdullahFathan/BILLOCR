@@ -131,7 +131,6 @@ export default function Home() {
   const [isScanning, setIsScanning] = useState(false);
   const [activeTab, setActiveTab] = useState<NavTab>("scan");
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
-  const [activeDinerName, setActiveDinerName] = useState<string | null>(null);
   const [remainingUploads, setRemainingUploads] = useState<number>(() => {
     const stored = readStoredQuota();
     return stored ? stored.remaining : DAILY_SCAN_LIMIT;
@@ -332,7 +331,7 @@ export default function Home() {
       <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
         <div className="text-center">
           <Activity className="mx-auto h-8 w-8 animate-spin text-primary" />
-          <p className="mt-2 text-sm text-muted">Loading store...</p>
+          <p className="mt-2 text-sm text-muted">Memuat data...</p>
         </div>
       </div>
     );
@@ -348,7 +347,7 @@ export default function Home() {
         open={parseError}
         onClose={() => setParseError(false)}
         title="Struk Tidak Terbaca"
-        message="Parser tidak menemukan item apapun dari teks OCR. Struk mungkin buram, terpotong, atau formatnya belum didukung. Kamu bisa menambah item secara manual di tab Assign."
+        message="Parser tidak menemukan item apapun dari teks OCR. Struk mungkin buram, terpotong, atau formatnya belum didukung. Kamu bisa menambah item secara manual di tab Bagi."
         variant="warning"
         closeLabel="Tambah Manual"
       />
@@ -383,8 +382,8 @@ export default function Home() {
                   Bagi Bill
                 </h1>
                 <p className="text-sm text-muted max-w-60uto leading-relaxed">
-                  Scan your receipt & split the bill fairly — all in your
-                  browser.
+                  Pindai struk dan bagi tagihan secara adil — semuanya di
+                  browser kamu.
                 </p>
               </div>
 
@@ -410,10 +409,10 @@ export default function Home() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h2 className="text-base font-bold font-heading text-foreground">
-                      Review Item Struk
+                      Tinjau Item Struk
                     </h2>
                     <p className="text-[11px] text-muted">
-                      Pastikan nama, qty, dan harga sesuai struk
+                      Pastikan nama, jumlah, dan harga sesuai struk
                     </p>
                   </div>
                 </div>
@@ -421,7 +420,7 @@ export default function Home() {
                 {/* Summary chips */}
                 <div className="flex items-center gap-2 px-5 py-3 border-b border-border/30 bg-surface-high/40 overflow-x-auto scrollbar-thin">
                   <span className="px-3 py-1 text-[11px] rounded-full bg-secondary border border-border text-foreground font-semibold whitespace-nowrap shrink-0">
-                    {items.length} item{items.length !== 1 ? "s" : ""}
+                    {items.length} item
                   </span>
                   <span className="px-3 py-1 text-[11px] rounded-full bg-primary/10 border border-primary/20 text-primary font-semibold whitespace-nowrap shrink-0 font-heading">
                     Rp {subtotal.toLocaleString("id-ID")}
@@ -433,7 +432,7 @@ export default function Home() {
                   )}
                   {serviceCharge > 0 && (
                     <span className="px-3 py-1 text-[11px] rounded-full bg-secondary border border-border text-muted font-semibold whitespace-nowrap shrink-0">
-                      Svc Rp {serviceCharge.toLocaleString("id-ID")}
+                      Layanan Rp {serviceCharge.toLocaleString("id-ID")}
                     </span>
                   )}
                 </div>
@@ -443,8 +442,8 @@ export default function Home() {
                   <div className="space-y-2.5 max-h-75 overflow-y-auto pr-1 scrollbar-thin">
                     {items.length === 0 ? (
                       <p className="text-xs text-muted text-center py-6">
-                        No items parsed. Click &ldquo;+ Add Item&rdquo; below to
-                        add manually.
+                        Belum ada item. Ketuk &ldquo;+ Tambah Item&rdquo; di
+                        bawah untuk menambah secara manual.
                       </p>
                     ) : (
                       items.map((item) => (
@@ -459,7 +458,7 @@ export default function Home() {
                               updateItem(item.id, { name: e.target.value })
                             }
                             className="w-full bg-transparent font-semibold text-foreground text-sm border-b border-transparent hover:border-border/40 focus:border-primary outline-none py-0.5 transition-all"
-                            placeholder="Item Name"
+                            placeholder="Nama item"
                           />
                           <div className="flex items-center justify-between gap-4">
                             {/* Qty stepper */}
@@ -519,7 +518,7 @@ export default function Home() {
                                 type="button"
                                 onClick={() => deleteItem(item.id)}
                                 className="p-1.5 text-muted hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all cursor-pointer active:scale-90"
-                                title="Delete Item"
+                                title="Hapus item"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -533,12 +532,12 @@ export default function Home() {
                   {/* Add Item */}
                   <button
                     onClick={() =>
-                      addItem({ name: "New Item", qty: 1, price: 0 })
+                      addItem({ name: "Item Baru", qty: 1, price: 0 })
                     }
                     className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-dashed border-border hover:border-primary/40 hover:bg-surface-high text-muted hover:text-foreground text-sm font-semibold transition-all active:scale-98 cursor-pointer"
                   >
                     <Plus className="w-4 h-4" />
-                    Add Item
+                    Tambah Item
                   </button>
 
                   {/* ── Biaya Tambahan separator ── */}
@@ -557,7 +556,7 @@ export default function Home() {
                       <div className="flex items-center gap-1.5">
                         <Percent className="w-3.5 h-3.5 text-warning" />
                         <label className="text-[11px] text-muted font-semibold">
-                          Pajak / Tax
+                          Pajak
                         </label>
                       </div>
                       <div className="relative flex items-center">
@@ -583,7 +582,7 @@ export default function Home() {
                       <div className="flex items-center gap-1.5">
                         <Utensils className="w-3.5 h-3.5 text-info" />
                         <label className="text-[11px] text-muted font-semibold">
-                          Service
+                          Layanan
                         </label>
                       </div>
                       <div className="relative flex items-center">
@@ -605,20 +604,6 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Raw OCR text */}
-                  <details className="group border border-border/40 rounded-xl overflow-hidden bg-surface-high/30">
-                    <summary className="flex items-center justify-between p-3 text-xs font-semibold text-muted cursor-pointer hover:bg-surface-high select-none transition-all">
-                      <span>View Raw OCR Text</span>
-                      <span className="transition-transform group-open:rotate-180 text-muted text-[9px]">
-                        ▼
-                      </span>
-                    </summary>
-                    <div className="p-3 border-t border-border/30 bg-input/40">
-                      <pre className="text-[10px] text-muted font-mono overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-35 overflow-y-auto scrollbar-thin select-all">
-                        {rawText}
-                      </pre>
-                    </div>
-                  </details>
                 </div>
               </div>
 
@@ -634,7 +619,7 @@ export default function Home() {
                       Bagi ke Siapa?
                     </h2>
                     <p className="text-[11px] text-muted">
-                      Ketuk nama untuk fast-assign ke item
+                      Tambah orang, lalu bagi item di daftar pesanan
                     </p>
                   </div>
                   {/* Diner count badge */}
@@ -645,10 +630,7 @@ export default function Home() {
                   )}
                 </div>
                 <div className="p-5">
-                  <DinerSelector
-                    activeDinerName={activeDinerName}
-                    setActiveDinerName={setActiveDinerName}
-                  />
+                  <DinerSelector />
                 </div>
               </div>
 
@@ -671,7 +653,6 @@ export default function Home() {
                       assignments={assignments[item.id] || {}}
                       onAssign={assignItem}
                       diners={diners}
-                      activeDinerName={activeDinerName}
                       isExpanded={expandedItemId === item.id}
                       onToggleExpand={() =>
                         setExpandedItemId(
@@ -690,7 +671,6 @@ export default function Home() {
                 assignments={assignments}
                 tax={tax}
                 serviceCharge={serviceCharge}
-                activeDinerName={activeDinerName}
               />
 
               {/* Footer actions */}
@@ -700,7 +680,7 @@ export default function Home() {
                   className="flex-1 flex items-center justify-center gap-2 h-12 px-4 rounded-xl bg-secondary hover:brightness-110 text-foreground border border-border font-semibold text-sm transition-all duration-200 active:scale-95 cursor-pointer"
                 >
                   <RefreshCw className="w-4 h-4" />
-                  Scan Baru
+                  Pindai Baru
                 </button>
                 <button
                   onClick={() => setActiveTab("settle")}
@@ -730,10 +710,10 @@ export default function Home() {
                   </div>
                   <div className="space-y-0.5">
                     <h2 className="text-lg font-bold font-heading text-foreground">
-                      Settle Up
+                      Rekap Tagihan
                     </h2>
                     <p className="text-xs text-muted">
-                      Copy the formatted recap to share with your group
+                      Salin rekap terformat untuk dibagikan ke grup
                     </p>
                   </div>
                 </div>
@@ -769,7 +749,7 @@ export default function Home() {
                 {/* Grand Total */}
                 <div className="flex justify-between items-center bg-surface-lowest border border-border rounded-xl px-4 py-3">
                   <span className="text-sm font-bold text-foreground">
-                    Grand Total
+                    Total Keseluruhan
                   </span>
                   <span className="text-lg font-bold text-primary font-heading">
                     Rp {total.toLocaleString("id-ID")}
@@ -783,7 +763,7 @@ export default function Home() {
                   onClick={() => setActiveTab("assign")}
                   className="flex-1 flex items-center justify-center gap-2 h-12 px-4 rounded-xl bg-secondary hover:brightness-110 text-foreground border border-border font-semibold text-sm transition-all duration-200 active:scale-95 cursor-pointer"
                 >
-                  Back
+                  Kembali
                 </button>
                 {/* ShareReportButton: menggantikan inline copy logic (poin 5) */}
                 <ShareReportButton
@@ -806,13 +786,13 @@ export default function Home() {
                 strokeWidth={1}
               />
               <p className="text-sm text-muted">
-                Scan a receipt first to get started.
+                Pindai struk dulu untuk mulai.
               </p>
               <button
                 onClick={() => setActiveTab("scan")}
                 className="h-10 px-5 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground font-semibold text-sm transition-all duration-200 active:scale-95 cursor-pointer"
               >
-                Go to Scan
+                Pindai Struk
               </button>
             </div>
           )}

@@ -16,7 +16,13 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   title: "Bagi Bill",
-  description: "Scan your receipt & split the bill fairly — all in your browser.",
+  description:
+    "Pindai struk dan bagi tagihan secara adil — semuanya di browser kamu.",
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -26,7 +32,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="id"
       className={`${inter.variable} ${outfit.variable} h-full antialiased dark`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">

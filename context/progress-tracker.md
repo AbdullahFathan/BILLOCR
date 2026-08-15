@@ -115,3 +115,15 @@ This progress tracker is the single source of truth for the implementation statu
 
 - [x] Rename product brand **Aura Split / Split Bill OCR → BagiBill** ✅ _Complete_
   - `layout.tsx` metadata title, `page.tsx` hero H1, share recap header, README, project-overview, ui-registry
+
+### Milestone 8: Bahasa Indonesia UI
+
+- [x] Terjemahkan seluruh teks UI (page, layout metadata, komponen custom, pesan error OCR) ke bahasa Indonesia; `html lang="id"` ✅ _Complete_
+- [x] Favicon memakai `public/icon.svg` via metadata `icons` di `layout.tsx` ✅ _Complete_
+
+### Milestone 9: Assign UX Cleanup
+
+- [x] Hapus fitur **bagi cepat aktif** (pilih diner lalu `+ Tugaskan ke [nama]`) ✅ _Complete_
+  - `DinerSelector` hanya daftar + tambah/hapus orang
+  - `ReceiptItemRow` tetap pakai chip **Tambah Cepat** per nama; CTA `Tugaskan ke` dihapus
+  - State `activeDinerName` di `page.tsx` dihapus

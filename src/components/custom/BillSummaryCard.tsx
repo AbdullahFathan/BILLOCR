@@ -12,7 +12,6 @@ interface BillSummaryCardProps {
   assignments: Record<string, Record<string, number>>; // itemId -> dinerName -> quantity
   tax: number;
   serviceCharge: number;
-  activeDinerName?: string | null;
 }
 
 export default function BillSummaryCard({
@@ -21,7 +20,6 @@ export default function BillSummaryCard({
   assignments,
   tax,
   serviceCharge,
-  activeDinerName,
 }: BillSummaryCardProps) {
   const [expandedDiner, setExpandedDiner] = useState<string | null>(null);
 
@@ -54,11 +52,7 @@ export default function BillSummaryCard({
     overallSubtotal - totalAllocatedSubtotal,
   );
 
-  /* Determine active diner breakdown to feature */
-  const featuredDiner =
-    dinerBreakdowns.find((d) => d.name === activeDinerName) ??
-    dinerBreakdowns[0] ??
-    null;
+  const featuredDiner = dinerBreakdowns[0] ?? null;
   const otherDiners = dinerBreakdowns.filter(
     (d) => d.name !== featuredDiner?.name,
   );
@@ -251,7 +245,7 @@ export default function BillSummaryCard({
       {/* ── Grand total strip ──────────────────────────────── */}
       <div className="border-t border-border/40 px-5 py-3 flex justify-between items-center bg-surface-lowest/60">
         <span className="text-[11px] text-muted font-medium">
-          Grand Total Struk
+          Total Struk
         </span>
         <span className="text-sm font-bold text-primary font-heading tabular-nums">
           Rp {grandTotal.toLocaleString("id-ID")}

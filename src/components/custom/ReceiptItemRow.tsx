@@ -16,7 +16,6 @@ interface ReceiptItemRowProps {
   assignments: Record<string, number>; // dinerName -> quantity
   onAssign: (itemId: string, dinerName: string, qty: number) => void;
   diners: string[];
-  activeDinerName: string | null;
   isExpanded: boolean;
   onToggleExpand: () => void;
 }
@@ -26,7 +25,6 @@ export default function ReceiptItemRow({
   assignments,
   onAssign,
   diners,
-  activeDinerName,
   isExpanded,
   onToggleExpand,
 }: ReceiptItemRowProps) {
@@ -128,18 +126,18 @@ export default function ReceiptItemRow({
             {isFullyAllocated && totalAssigned > 0 && (
               <span className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold bg-success/15 text-success rounded-full border border-success/25 shrink-0">
                 <CheckCircle2 className="w-2.5 h-2.5" />
-                Done
+                Selesai
               </span>
             )}
             {!isFullyAllocated && totalAssigned > 0 && (
               <span className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold bg-warning/20 text-warning rounded-full border border-warning/30 animate-pulse shrink-0">
                 <AlertCircle className="w-2.5 h-2.5" />
-                {remainingQty} left
+                {remainingQty} sisa
               </span>
             )}
             {isUnallocated && diners.length > 0 && (
               <span className="px-2 py-0.5 text-[10px] font-semibold bg-secondary border border-border text-muted rounded-full shrink-0">
-                Unassigned
+                Belum dibagi
               </span>
             )}
           </div>
@@ -150,7 +148,7 @@ export default function ReceiptItemRow({
             <span className="text-primary font-semibold">
               {item.price.toLocaleString("id-ID")}
             </span>{" "}
-            / unit
+            / satuan
           </p>
         </div>
 
@@ -177,12 +175,12 @@ export default function ReceiptItemRow({
       {/* ── Avatar strip (collapsed, has assignments) ─────────── */}
       {!isExpanded && totalAssigned > 0 && (
         <div className="px-4 pb-3 pt-1 border-t border-border/20 flex flex-wrap gap-1.5 items-center">
-          <span className="text-[10px] text-muted font-medium">Split:</span>
+          <span className="text-[10px] text-muted font-medium">Bagi:</span>
           {Object.entries(assignments).map(([dinerName, qty]) => (
             <div
               key={dinerName}
               className="group relative flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-semibold transition-all hover:bg-primary/20 cursor-default"
-              title={`${dinerName}: ${qty} shares`}
+              title={`${dinerName}: ${qty} porsi`}
             >
               <span className="w-3.5 h-3.5 rounded-full bg-primary/20 flex items-center justify-center text-[8px] font-bold">
                 {getInitials(dinerName).charAt(0)}
@@ -192,7 +190,7 @@ export default function ReceiptItemRow({
 
               {/* Tooltip */}
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block z-20 bg-surface-highest border border-border rounded-lg text-[10px] font-medium py-1 px-2.5 shadow-md whitespace-nowrap text-foreground">
-                {dinerName}: {qty} {qty === 1 ? "share" : "shares"}
+                {dinerName}: {qty} porsi
               </div>
             </div>
           ))}
@@ -206,7 +204,7 @@ export default function ReceiptItemRow({
           {Object.keys(assignments).length > 0 ? (
             <div className="space-y-2">
               <span className="text-[11px] text-muted font-semibold uppercase tracking-wider block">
-                Diner Splits
+                Pembagian
               </span>
               <div className="space-y-2">
                 {Object.entries(assignments).map(([dinerName, qty]) => (
@@ -257,24 +255,24 @@ export default function ReceiptItemRow({
             </div>
           ) : (
             <p className="text-xs text-muted italic py-1 text-center">
-              No diners assigned yet.
+              Belum ada orang yang ditugaskan.
             </p>
           )}
 
           {/* Split progress tracker */}
           <div className="bg-surface border border-border/40 rounded-xl px-3 py-2.5 flex justify-between items-center text-xs">
-            <span className="text-muted font-medium">Progress</span>
+            <span className="text-muted font-medium">Progres</span>
             <div className="flex items-center gap-2">
               <span className="font-mono font-bold text-foreground tabular-nums">
                 {totalAssigned} / {item.qty}
               </span>
               {!isFullyAllocated ? (
                 <span className="px-2 py-0.5 text-[10px] font-semibold bg-warning/20 text-warning rounded-full border border-warning/20">
-                  {remainingQty} left
+                  {remainingQty} sisa
                 </span>
               ) : (
                 <span className="px-2 py-0.5 text-[10px] font-semibold bg-success/20 text-success rounded-full border border-success/20">
-                  Complete
+                  Lengkap
                 </span>
               )}
             </div>
@@ -284,7 +282,7 @@ export default function ReceiptItemRow({
           {diners.length > 0 && unassignedDiners.length > 0 && (
             <div className="space-y-2">
               <span className="text-[11px] text-muted font-semibold uppercase tracking-wider block">
-                Quick Add
+                Tambah Cepat
               </span>
               <div className="flex flex-wrap gap-2">
                 {unassignedDiners.map((dinerName) => (
@@ -305,27 +303,6 @@ export default function ReceiptItemRow({
                 ))}
               </div>
             </div>
-          )}
-
-          {/* Active diner fast-assign CTA */}
-          {activeDinerName && !isFullyAllocated && (
-            <button
-              type="button"
-              onClick={() => {
-                if (activeDinerName in assignments) {
-                  handleIncrement(activeDinerName);
-                } else {
-                  handleQuickAssign(activeDinerName);
-                }
-              }}
-              className="w-full py-2.5 bg-primary/10 border border-dashed border-primary/40 rounded-xl hover:bg-primary/20 text-primary text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-98"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Assign to{" "}
-              <span className="underline underline-offset-2">
-                {activeDinerName}
-              </span>
-            </button>
           )}
         </div>
       )}

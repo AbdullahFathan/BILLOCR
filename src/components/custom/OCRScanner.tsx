@@ -44,11 +44,11 @@ function normalizeResetMs(raw: number | null | undefined, header?: string | null
 
 /* ─── Scanning step labels (indeterminate — no % from Mistral) ──── */
 const STEPS = [
-  "Compressing image...",
-  "Sending to OCR engine...",
-  "Reading receipt structure...",
-  "Extracting items & prices...",
-  "Finalizing results...",
+  "Mengompres gambar...",
+  "Mengirim ke mesin OCR...",
+  "Membaca struktur struk...",
+  "Mengekstrak item & harga...",
+  "Menyelesaikan hasil...",
 ];
 
 export default function OCRScanner({
@@ -142,10 +142,10 @@ export default function OCRScanner({
             const result = reader.result as string;
             // Strip data URL prefix → keep only base64 payload
             const base64Payload = result.split(",")[1];
-            if (!base64Payload) reject(new Error("Failed to encode image."));
+            if (!base64Payload) reject(new Error("Gagal mengenkode gambar."));
             else resolve(base64Payload);
           };
-          reader.onerror = () => reject(new Error("FileReader error."));
+          reader.onerror = () => reject(new Error("Gagal membaca file."));
           reader.readAsDataURL(compressed);
         });
 
@@ -201,7 +201,7 @@ export default function OCRScanner({
             );
             onQuotaUpdateRef.current?.(json.remaining, resetMs);
           }
-          throw new Error(json.message ?? "Unknown OCR error.");
+          throw new Error(json.message ?? "Gagal membaca struk. Silakan coba lagi.");
         }
 
         // 7. Success path
@@ -217,7 +217,7 @@ export default function OCRScanner({
         const msg =
           err instanceof Error
             ? err.message
-            : "Unexpected error during scanning.";
+            : "Terjadi kesalahan saat memindai struk.";
         console.error("[OCRScanner] Error:", msg);
         setErrorMsg(msg);
         setStatus("api_error");
@@ -250,12 +250,12 @@ export default function OCRScanner({
         </div>
         <div className="flex-1 min-w-0">
           <h2 className="text-lg font-bold font-heading text-foreground leading-tight">
-            Scanning Receipt
+            Memindai Struk
           </h2>
         </div>
         <button
           onClick={onCancel}
-          aria-label="Cancel scanning"
+          aria-label="Batalkan pemindaian"
           className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface-high border border-border text-muted hover:text-foreground hover:border-primary transition-all duration-200 cursor-pointer shrink-0"
         >
           <X className="w-4 h-4" />
@@ -269,7 +269,7 @@ export default function OCRScanner({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={imageUrl}
-            alt="Receipt preview"
+            alt="Pratinjau struk"
             className="w-full max-h-65 object-contain opacity-60"
           />
 
@@ -340,7 +340,7 @@ export default function OCRScanner({
               <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-destructive" />
               <div>
                 <p className="font-bold text-sm text-destructive">
-                  Extraction Failed
+                  Gagal Membaca Struk
                 </p>
                 <p className="text-xs text-foreground/70 mt-1 leading-relaxed">
                   {errorMsg}
@@ -353,13 +353,13 @@ export default function OCRScanner({
                 className="flex-1 flex items-center justify-center gap-2 h-12 px-4 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground font-semibold text-sm transition-all duration-200 active:scale-95 cursor-pointer"
               >
                 <RefreshCw className="w-4 h-4" />
-                Try Again
+                Coba Lagi
               </button>
               <button
                 onClick={onCancel}
                 className="flex-1 flex items-center justify-center h-12 px-4 rounded-xl bg-secondary hover:brightness-110 text-foreground border border-border font-semibold text-sm transition-all duration-200 active:scale-95 cursor-pointer"
               >
-                Cancel
+                Batal
               </button>
             </div>
           </>
@@ -397,7 +397,7 @@ export default function OCRScanner({
               onClick={onCancel}
               className="w-full flex items-center justify-center h-12 px-4 rounded-xl bg-secondary hover:brightness-110 text-foreground border border-border font-semibold text-sm transition-all duration-200 active:scale-95 cursor-pointer"
             >
-              Cancel
+              Batal
             </button>
           </>
         )}

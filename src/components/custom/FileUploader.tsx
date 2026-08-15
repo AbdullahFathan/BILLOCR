@@ -113,7 +113,7 @@ export default function FileUploader({
           role={!isLimitReached ? "button" : undefined}
           tabIndex={!isLimitReached ? 0 : undefined}
           aria-label={
-            !isLimitReached ? "Upload foto struk" : "Batas scan harian tercapai"
+            !isLimitReached ? "Unggah foto struk" : "Batas scan harian tercapai"
           }
           onKeyDown={
             !isLimitReached
@@ -163,13 +163,13 @@ export default function FileUploader({
               {isLimitReached
                 ? "Batas scan harian tercapai"
                 : isDragActive
-                  ? "Drop to scan your receipt"
-                  : "Upload your receipt"}
+                  ? "Lepas untuk memindai struk"
+                  : "Unggah struk kamu"}
             </h3>
             <p className="text-xs text-muted max-w-50 mx-auto leading-relaxed">
               {isLimitReached
                 ? "Kamu sudah melakukan 5 scan hari ini. Kembali lagi besok."
-                : "Drag & drop a photo here, or use the buttons below"}
+                : "Seret & lepas foto di sini, atau gunakan tombol di bawah"}
             </p>
           </div>
 
@@ -185,7 +185,7 @@ export default function FileUploader({
                 className="flex-1 flex items-center justify-center gap-2 h-12 px-4 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground font-semibold text-sm transition-all duration-200 active:scale-95 cursor-pointer shadow-md"
               >
                 <Upload className="w-4 h-4" />
-                Gallery
+                Galeri
               </button>
 
               <button
@@ -194,7 +194,7 @@ export default function FileUploader({
                 className="flex-1 flex items-center justify-center gap-2 h-12 px-4 rounded-xl bg-secondary hover:brightness-110 text-foreground border border-border font-semibold text-sm transition-all duration-200 active:scale-95 cursor-pointer"
               >
                 <Camera className="w-4 h-4" />
-                Camera
+                Kamera
               </button>
             </div>
           )}
